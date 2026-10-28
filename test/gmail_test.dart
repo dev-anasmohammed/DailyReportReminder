@@ -236,6 +236,12 @@ void main() {
       expect(delivery.record(day, 'sent')?['gmailMessageId'], 'sent-id');
       await expectLater(delivery.send(sampleReply(), day), throwsStateError);
       expect(posts, 1);
+      await delivery.dismissSendBlock(day);
+      expect(posts, 1);
+      expect(delivery.record(day, 'sent'), isNull);
+      expect(prefs.getBool('2026-10-28.completed'), true);
+      await delivery.send(sampleReply(), day);
+      expect(posts, 2);
     },
   );
   test('uncertain send preserves draft and pending record; metadata can confirm it', () async {
@@ -274,6 +280,23 @@ void main() {
     expect(await delivery.checkPrevious(day), true);
     expect(prefs.getBool('2026-10-28.completed'), true);
   });
+  test(
+    'dismiss clears an uncertain send guard without sending or deleting drafts',
+    () async {
+      SharedPreferences.setMockInitialValues({
+        '2026-10-28.gmail.pending': jsonEncode({'threadId': 'thread-1'}),
+        '2026-10-28.today': 'Draft work',
+      });
+      final prefs = await SharedPreferences.getInstance();
+      final service = GmailService(vault: MemoryVault());
+      addTearDown(service.dispose);
+      final delivery = GmailDelivery(service, prefs);
+      await delivery.dismissSendBlock(DateTime(2026, 10, 28));
+      expect(delivery.record(DateTime(2026, 10, 28), 'pending'), isNull);
+      expect(prefs.getString('2026-10-28.today'), 'Draft work');
+      expect(prefs.getBool('2026-10-28.completed'), isNull);
+    },
+  );
   test('OAuth uses loopback, PKCE, state validation and send/header-only permissions', () async {
     final vault = MemoryVault();
     late String verifierChallenge;

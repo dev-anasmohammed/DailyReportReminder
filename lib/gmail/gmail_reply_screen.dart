@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_widget_from_html_core/flutter_widget_from_html_core.dart';
 
 import 'gmail_service.dart';
+import 'gmail_delivery.dart';
 
 class GmailReplyScreen extends StatefulWidget {
   const GmailReplyScreen({
@@ -12,11 +13,13 @@ class GmailReplyScreen extends StatefulWidget {
     required this.plain,
     required this.html,
     required this.onSend,
+    this.onDismissSendBlock,
   });
   final GmailThread thread;
   final String account, plain, html;
   final bool replyAll;
   final Future<void> Function(PreparedReply) onSend;
+  final Future<void> Function()? onDismissSendBlock;
   @override
   State<GmailReplyScreen> createState() => _GmailReplyScreenState();
 }
@@ -25,6 +28,7 @@ class _GmailReplyScreenState extends State<GmailReplyScreen> {
   final to = TextEditingController(), cc = TextEditingController();
   late bool replyAll;
   bool sending = false;
+  bool dismissing = false, sendBlocked = false;
   String? error;
   @override
   void initState() {
@@ -74,15 +78,38 @@ class _GmailReplyScreenState extends State<GmailReplyScreen> {
       await widget.onSend(reply);
       if (mounted) Navigator.pop(context, true);
     } catch (e) {
-      if (mounted) setState(() => error = e.toString());
+      if (mounted) {
+        setState(() {
+          error = e.toString();
+          sendBlocked = e is GmailSendBlocked;
+        });
+      }
     } finally {
       if (mounted) setState(() => sending = false);
     }
   }
 
+  Future<void> dismissError() async {
+    if (sending || dismissing) return;
+    setState(() => dismissing = true);
+    try {
+      if (sendBlocked) await widget.onDismissSendBlock?.call();
+      if (mounted) {
+        setState(() {
+          error = null;
+          sendBlocked = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) setState(() => error = e.toString());
+    } finally {
+      if (mounted) setState(() => dismissing = false);
+    }
+  }
+
   @override
   Widget build(BuildContext context) => PopScope(
-    canPop: !sending,
+    canPop: !sending && !dismissing,
     child: Scaffold(
       appBar: AppBar(
         title: const Text('Preview reply'),
@@ -90,7 +117,7 @@ class _GmailReplyScreenState extends State<GmailReplyScreen> {
           Padding(
             padding: const EdgeInsets.only(right: 24),
             child: FilledButton.icon(
-              onPressed: sending ? null : send,
+              onPressed: sending || dismissing ? null : send,
               icon: const Icon(Icons.send_outlined, size: 16),
               label: Text(sending ? 'Sending…' : 'Send reply'),
             ),
@@ -159,11 +186,21 @@ class _GmailReplyScreenState extends State<GmailReplyScreen> {
               if (error != null)
                 Padding(
                   padding: const EdgeInsets.only(top: 20),
-                  child: SelectableText(
-                    error!,
-                    style: TextStyle(
-                      color: Theme.of(context).colorScheme.error,
-                    ),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: SelectableText(
+                          error!,
+                          style: TextStyle(
+                            color: Theme.of(context).colorScheme.error,
+                          ),
+                        ),
+                      ),
+                      TextButton(
+                        onPressed: sending || dismissing ? null : dismissError,
+                        child: const Text('Dismiss'),
+                      ),
+                    ],
                   ),
                 ),
               const SizedBox(height: 20),

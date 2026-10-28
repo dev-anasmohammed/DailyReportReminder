@@ -90,6 +90,7 @@ class _Home extends State<ReportHome> with WindowListener, TrayListener {
       checking = false,
       loading = false;
   String? error;
+  GmailSendBlocked? blockedSend;
   Timer? timer;
   bool reminderVisible = false;
   final reportKey = GlobalKey();
@@ -142,7 +143,32 @@ class _Home extends State<ReportHome> with WindowListener, TrayListener {
 
   void fail(Object e) {
     if (mounted) {
-      setState(() => error = e.toString());
+      setState(() {
+        error = e.toString();
+        blockedSend = e is GmailSendBlocked ? e : null;
+      });
+    }
+  }
+
+  Future<void> dismissError() async {
+    if (mailBusy) return;
+    final block = blockedSend;
+    if (block != null) {
+      setState(() => mailBusy = true);
+      try {
+        await GmailDelivery(gmail, prefs).dismissSendBlock(block.day);
+      } catch (e) {
+        if (mounted) setState(() => error = e.toString());
+        return;
+      } finally {
+        if (mounted) setState(() => mailBusy = false);
+      }
+    }
+    if (mounted) {
+      setState(() {
+        error = null;
+        blockedSend = null;
+      });
     }
   }
 
@@ -446,7 +472,10 @@ class _Home extends State<ReportHome> with WindowListener, TrayListener {
       }
       final delivery = GmailDelivery(gmail, prefs);
       if (delivery.record(reportDay, 'sent') != null) {
-        throw StateError('A report was already sent today. Check Gmail Sent.');
+        throw GmailSendBlocked(
+          reportDay,
+          'A report was already sent today. Check Gmail Sent.',
+        );
       }
       if (delivery.record(reportDay, 'pending') != null) {
         if (await delivery.checkPrevious(reportDay)) {
@@ -497,6 +526,7 @@ class _Home extends State<ReportHome> with WindowListener, TrayListener {
             plain: reportPlainText(work, plans, issues),
             html: reportHtml(work, plans, issues),
             onSend: (reply) => delivery.send(reply, reportDay),
+            onDismissSendBlock: () => delivery.dismissSendBlock(reportDay),
           ),
         ),
       );
@@ -981,10 +1011,9 @@ class _Home extends State<ReportHome> with WindowListener, TrayListener {
                                       style: const TextStyle(fontSize: 12),
                                     ),
                                   ),
-                                  IconButton(
-                                    onPressed: () =>
-                                        setState(() => error = null),
-                                    icon: const Icon(Icons.close, size: 16),
+                                  TextButton(
+                                    onPressed: mailBusy ? null : dismissError,
+                                    child: const Text('Dismiss'),
                                   ),
                                 ],
                               ),

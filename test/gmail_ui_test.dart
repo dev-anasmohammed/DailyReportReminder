@@ -5,6 +5,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:daily_report_reminder/app_theme.dart';
 import 'package:daily_report_reminder/gmail/gmail_service.dart';
+import 'package:daily_report_reminder/gmail/gmail_delivery.dart';
 import 'package:daily_report_reminder/gmail/gmail_settings_screen.dart';
 import 'package:daily_report_reminder/gmail/gmail_reply_screen.dart';
 import 'package:daily_report_reminder/report_clipboard.dart';
@@ -47,6 +48,7 @@ void main() {
       addTearDown(tester.view.resetDevicePixelRatio);
       final result = Completer<void>();
       var calls = 0;
+      var dismissed = false;
       final html = reportHtml('**App:**\n01- Finished work', '01- Tests', '');
       await tester.pumpWidget(
         MaterialApp(
@@ -62,6 +64,7 @@ void main() {
               expect(reply.to.single.email, 'manager@example.com');
               return result.future;
             },
+            onDismissSendBlock: () async => dismissed = true,
           ),
         ),
       );
@@ -81,10 +84,21 @@ void main() {
             .onPressed,
         isNull,
       );
-      result.completeError(StateError('Check previous send'));
+      result.completeError(
+        GmailSendBlocked(DateTime(2026, 10, 28), 'Check previous send'),
+      );
       await tester.pumpAndSettle();
       expect(find.textContaining('Check previous send'), findsOneWidget);
       expect(calls, 1);
+      await tester.ensureVisible(find.text('Dismiss'));
+      await tester.tap(find.text('Dismiss'));
+      await tester.pumpAndSettle();
+      expect(dismissed, isTrue);
+      expect(find.textContaining('Check previous send'), findsNothing);
+      expect(calls, 1);
+      await tester.tap(find.text('Send reply'));
+      await tester.pumpAndSettle();
+      expect(calls, 2);
     },
   );
 }

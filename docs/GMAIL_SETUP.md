@@ -39,6 +39,8 @@ If the network fails after a send request, the app cannot assume the message fai
 
 ## Storage and verification
 
+If a send is blocked because a report was already sent today or a previous attempt is unconfirmed, the error box includes **Dismiss**. This explicitly clears that day's send block and closes the message. It does not send anything, delete your draft, or restart completed reminders. Click **Preview & send** or **Send reply** again to send another report. A previous message can already exist in Gmail, so dismissing this check allows a duplicate.
+
 OAuth configuration and tokens are stored using Flutter Secure Storage (macOS Keychain and the Windows secure storage implementation). Account/thread selection and send confirmations are stored locally with app settings. Disconnect removes local tokens; revoke Google access separately in your Google Account if desired.
 
 Do not commit downloaded OAuth JSON, tokens, or real email fixtures. No account token, Google client credential, or real email message is included in this repository. Tests use fake accounts and mocked API responses, including a local-only OAuth callback. A real Google sign-in and a test-thread reply still need to be verified with your own OAuth client before relying on the feature for work.

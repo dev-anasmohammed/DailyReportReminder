@@ -5,6 +5,11 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../report.dart';
 import 'gmail_service.dart';
 
+class GmailSendBlocked extends StateError {
+  GmailSendBlocked(this.day, super.message);
+  final DateTime day;
+}
+
 class GmailDelivery {
   GmailDelivery(this.gmail, this.prefs);
   final GmailService gmail;
@@ -17,10 +22,14 @@ class GmailDelivery {
 
   Future<void> send(PreparedReply reply, DateTime day) async {
     if (record(day, 'sent') != null) {
-      throw StateError('A report was already sent today. Check Gmail Sent.');
+      throw GmailSendBlocked(
+        day,
+        'A report was already sent today. Check Gmail Sent.',
+      );
     }
     if (record(day, 'pending') != null) {
-      throw StateError(
+      throw GmailSendBlocked(
+        day,
         'A previous send has an unconfirmed result. Check Gmail before trying again.',
       );
     }
@@ -41,7 +50,8 @@ class GmailDelivery {
         'sentAt': DateTime.now().toIso8601String(),
       });
     } catch (_) {
-      throw StateError(
+      throw GmailSendBlocked(
+        day,
         'Could not confirm sending. Your draft is saved. Check Gmail Sent or use Check previous send before trying again; the message may already have been sent.',
       );
     }
@@ -79,4 +89,12 @@ class GmailDelivery {
   }
 
   Future<void> clearPending(DateTime day) => prefs.remove(key(day, 'pending'));
+
+  Future<void> dismissSendBlock(DateTime day) async {
+    // Explicit user override only. Dismissing never sends or restarts reminders.
+    if (!await prefs.remove(key(day, 'sent')) ||
+        !await prefs.remove(key(day, 'pending'))) {
+      throw StateError('Could not dismiss the send check. Please try again.');
+    }
+  }
 }
