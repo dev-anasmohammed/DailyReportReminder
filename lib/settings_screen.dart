@@ -10,7 +10,9 @@ class SettingsScreen extends StatefulWidget {
     required this.onStartup,
     required this.onTest,
     required this.onSave,
+    this.onGmail,
   });
+  final Future<void> Function()? onGmail;
   final DailySchedule schedule;
   final bool startup;
   final Future<bool> Function(bool) onStartup;
@@ -75,6 +77,21 @@ class _SettingsScreenState extends State<SettingsScreen> {
         child: ListView(
           padding: const EdgeInsets.all(28),
           children: [
+            if (widget.onGmail != null) ...[
+              ListTile(
+                contentPadding: EdgeInsets.zero,
+                leading: const Icon(Icons.mail_outline),
+                title: const Text('Gmail delivery'),
+                subtitle: const Text(
+                  'Connect your account and choose the report conversation.',
+                ),
+                trailing: OutlinedButton(
+                  onPressed: widget.onGmail,
+                  child: const Text('Configure Gmail'),
+                ),
+              ),
+              const Divider(height: 40),
+            ],
             Text(
               'Working hours',
               style: Theme.of(context).textTheme.headlineSmall,

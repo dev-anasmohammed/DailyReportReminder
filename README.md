@@ -51,4 +51,8 @@ Drafts and history use local SharedPreferences storage (not encrypted, no cross-
 
 ## Current verification limits
 
-macOS runtime behavior and Apple signing must be verified on a Mac. CI provides a separate build for each platform. No automatic report sending is implemented.
+macOS runtime behavior and Apple signing must be verified on a Mac. CI provides a separate build for each platform. Gmail replies are sent only after preview and an explicit Send reply action. A real-account end-to-end send requires your Google OAuth client and sign-in.
+
+## Gmail replies
+
+Connect Gmail and reply directly in a selected report conversation. See [Gmail setup and sending](docs/GMAIL_SETUP.md) for the one-time Google OAuth setup and daily workflow.

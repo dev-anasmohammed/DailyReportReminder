@@ -46,3 +46,8 @@ app.*.map.json
 
 # Widget Preview related
 .widget_preview/
+
+# Google OAuth files are imported locally; never commit them.
+client_secret*.json
+credentials.json
+oauth-client*.json

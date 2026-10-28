@@ -40,6 +40,12 @@ dependencies:
   tray_manager: ^0.8.0
   window_manager: ^0.5.2
   markdown: ^7.3.1
+  http: ^1.6.0
+  crypto: ^3.0.8
+  flutter_secure_storage: ^10.3.4
+  url_launcher: ^6.3.3
+  enough_mail: ^3.0.0
+  flutter_widget_from_html_core: ^0.17.4
 
 
 dev_dependencies:

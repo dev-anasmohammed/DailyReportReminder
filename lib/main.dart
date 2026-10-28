@@ -17,6 +17,10 @@ import 'app_theme.dart';
 import 'schedule.dart';
 import 'settings_screen.dart';
 import 'reminder_dialog.dart';
+import 'gmail/gmail_service.dart';
+import 'gmail/gmail_delivery.dart';
+import 'gmail/gmail_settings_screen.dart';
+import 'gmail/gmail_reply_screen.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -68,6 +72,8 @@ class _Home extends State<ReportHome> with WindowListener, TrayListener {
   Timer? timer;
   bool reminderVisible = false;
   final reportKey = GlobalKey();
+  final gmail = GmailService();
+  bool mailBusy = false;
   SharedPreferences get prefs => widget.prefs;
 
   @override
@@ -354,6 +360,7 @@ class _Home extends State<ReportHome> with WindowListener, TrayListener {
           schedule: schedule,
           startup: startup,
           onStartup: toggleStartup,
+          onGmail: gmailSettings,
           onTest: () =>
               notify('Take a moment to update your work, plans, and blockers.'),
           onSave: (value) async {
@@ -369,6 +376,7 @@ class _Home extends State<ReportHome> with WindowListener, TrayListener {
   @override
   void dispose() {
     timer?.cancel();
+    gmail.dispose();
     windowManager.removeListener(this);
     trayManager.removeListener(this);
     for (final c in [today, tomorrow, blockers, author]) {
@@ -378,6 +386,106 @@ class _Home extends State<ReportHome> with WindowListener, TrayListener {
   }
 
   bool projectView = false;
+
+  Future<void> gmailSettings() async {
+    await Navigator.push<void>(
+      context,
+      MaterialPageRoute(
+        builder: (_) => GmailSettingsScreen(gmail: gmail, prefs: prefs),
+      ),
+    );
+  }
+
+  Future<void> sendReport() async {
+    if (mailBusy) return;
+    setState(() => mailBusy = true);
+    final reportDay = DateTime.parse(day);
+    final work = today.text, plans = tomorrow.text, issues = blockers.text;
+    try {
+      if (work.trim().isEmpty) {
+        throw StateError('Add today’s work before sending your report.');
+      }
+      await gmail.load();
+      if (!mounted) return;
+      final threadId = prefs.getString('gmail.thread.id');
+      if (!gmail.connected ||
+          threadId == null ||
+          prefs.getString('gmail.thread.account') != gmail.email) {
+        await gmailSettings();
+        return;
+      }
+      final delivery = GmailDelivery(gmail, prefs);
+      if (delivery.record(reportDay, 'sent') != null) {
+        throw StateError('A report was already sent today. Check Gmail Sent.');
+      }
+      if (delivery.record(reportDay, 'pending') != null) {
+        if (await delivery.checkPrevious(reportDay)) {
+          if (mounted) {
+            setState(
+              () => completed = prefs.getBool('$day.completed') ?? completed,
+            );
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Previous reply confirmed in Gmail.'),
+              ),
+            );
+          }
+          return;
+        }
+        if (!mounted) return;
+        final retry = await showDialog<bool>(
+          context: context,
+          builder: (ctx) => AlertDialog(
+            title: const Text('Previous send is unconfirmed'),
+            content: const Text(
+              'A matching sent message is not visible yet. Check Gmail Sent before allowing another attempt, to avoid sending your report twice.',
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(ctx, false),
+                child: const Text('Keep waiting'),
+              ),
+              OutlinedButton(
+                onPressed: () => Navigator.pop(ctx, true),
+                child: const Text('I checked Gmail; allow another attempt'),
+              ),
+            ],
+          ),
+        );
+        if (retry != true) return;
+        await delivery.clearPending(reportDay);
+      }
+      final thread = await gmail.thread(threadId);
+      if (!mounted) return;
+      final sent = await Navigator.push<bool>(
+        context,
+        MaterialPageRoute(
+          builder: (_) => GmailReplyScreen(
+            thread: thread,
+            account: gmail.email,
+            replyAll: prefs.getBool('gmail.replyAll') ?? false,
+            plain: reportPlainText(work, plans, issues),
+            html: reportHtml(work, plans, issues),
+            onSend: (reply) => delivery.send(reply, reportDay),
+          ),
+        ),
+      );
+      if (sent == true && mounted) {
+        setState(
+          () => completed = prefs.getBool('$day.completed') ?? completed,
+        );
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Reply sent. Today’s reminders are stopped.'),
+          ),
+        );
+      }
+    } catch (e) {
+      fail(e);
+    } finally {
+      if (mounted) setState(() => mailBusy = false);
+    }
+  }
 
   Future<void> copyReport() async {
     try {
@@ -644,6 +752,11 @@ class _Home extends State<ReportHome> with WindowListener, TrayListener {
             onPressed: copyReport,
             icon: const Icon(Icons.copy_outlined, size: 15),
             label: const Text('Copy report'),
+          ),
+          OutlinedButton.icon(
+            onPressed: mailBusy ? null : sendReport,
+            icon: const Icon(Icons.send_outlined, size: 15),
+            label: Text(mailBusy ? 'Preparing reply…' : 'Preview & send'),
           ),
         ],
       ),
