@@ -125,6 +125,7 @@ class _Home extends State<ReportHome> with WindowListener, TrayListener {
       startup = await launchAtStartup.isEnabled();
       await trayManager.setIcon(
         Platform.isWindows ? 'assets/tray.ico' : 'assets/tray.png',
+        isTemplate: Platform.isMacOS,
       );
       await trayManager.setToolTip('Daily Report');
       await trayManager.setContextMenu(
@@ -412,7 +413,7 @@ class _Home extends State<ReportHome> with WindowListener, TrayListener {
         children: [
           Row(
             children: [
-              const Icon(Icons.auto_awesome_motion, size: 36),
+              Image.asset('assets/app_icon.png', width: 36, height: 36),
               const SizedBox(width: 16),
               Expanded(
                 child: Column(

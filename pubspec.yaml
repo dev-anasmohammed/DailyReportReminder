@@ -95,5 +95,6 @@ flutter:
   # see https://flutter.dev/to/font-from-package
 
   assets:
+    - assets/app_icon.png
     - assets/tray.ico
     - assets/tray.png
