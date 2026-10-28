@@ -22,13 +22,38 @@ jobs:
       - run: flutter test
       - if: runner.os == 'Windows'
         run: flutter build windows --release --no-tree-shake-icons
+      - if: runner.os == 'Windows'
+        name: Package Windows installer
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $compiler = Get-ChildItem "${env:ProgramFiles(x86)}\Inno Setup*\ISCC.exe" -ErrorAction SilentlyContinue | Select-Object -First 1
+          if (!$compiler) {
+            choco install innosetup --yes --no-progress
+            if ($LASTEXITCODE -ne 0) { throw 'Inno Setup installation failed' }
+            $compiler = Get-ChildItem "${env:ProgramFiles(x86)}\Inno Setup*\ISCC.exe" | Select-Object -First 1
+          }
+          $vswhere = "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe"
+          $vs = & $vswhere -latest -products '*' -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property installationPath
+          $runtime = Get-ChildItem "$vs\VC\Redist\MSVC\*\x64\Microsoft.VC*.CRT" -Directory | Sort-Object FullName -Descending | Select-Object -First 1
+          if (!$compiler -or !$runtime) { throw 'Installer compiler or x64 CRT unavailable' }
+          ./tools/build_windows_installer.ps1 -Compiler $compiler.FullName -RuntimeDir $runtime.FullName -OutputPath $PWD.Path
       - if: runner.os == 'macOS'
         run: flutter build macos --release --no-tree-shake-icons
+      - if: runner.os == 'macOS'
+        name: Package macOS installer
+        run: bash tools/build_macos_installer.sh
       - if: runner.os == 'Windows'
         uses: actions/upload-artifact@v4
         with:
           name: DailyReport-Windows
           path: build/windows/x64/runner/Release/
+      - if: runner.os == 'Windows'
+        uses: actions/upload-artifact@v4
+        with:
+          name: DailyReport-Windows-Installer
+          path: DailyReportReminder-Setup-Windows-x64.exe
+          if-no-files-found: error
       - if: runner.os == 'macOS'
         run: ditto -c -k --sequesterRsrc --keepParent "build/macos/Build/Products/Release/Daily Report.app" DailyReport-macOS.zip
       - if: runner.os == 'macOS'
@@ -36,3 +61,9 @@ jobs:
         with:
           name: DailyReport-macOS
           path: DailyReport-macOS.zip
+      - if: runner.os == 'macOS'
+        uses: actions/upload-artifact@v4
+        with:
+          name: DailyReport-macOS-Installer
+          path: DailyReportReminder-Setup-macOS.dmg
+          if-no-files-found: error

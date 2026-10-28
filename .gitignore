@@ -51,3 +51,7 @@ app.*.map.json
 client_secret*.json
 credentials.json
 oauth-client*.json
+
+# Packaged desktop downloads
+/DailyReportReminder-Setup-*.exe
+/DailyReportReminder-Setup-*.dmg
