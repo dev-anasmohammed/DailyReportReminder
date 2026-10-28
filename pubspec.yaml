@@ -46,6 +46,7 @@ dependencies:
   url_launcher: ^6.3.3
   enough_mail: ^3.0.0
   flutter_widget_from_html_core: ^0.17.4
+  audioplayers: ^6.8.1
 
 
 dev_dependencies:
@@ -105,3 +106,4 @@ flutter:
     - assets/app_icon.png
     - assets/tray.ico
     - assets/tray.png
+    - assets/reminder_sound.mp3

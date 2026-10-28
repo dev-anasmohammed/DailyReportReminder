@@ -18,6 +18,7 @@ import 'schedule.dart';
 import 'settings_screen.dart';
 import 'profile_screen.dart';
 import 'reminder_dialog.dart';
+import 'reminder_sound.dart';
 import 'gmail/gmail_service.dart';
 import 'gmail/gmail_delivery.dart';
 import 'gmail/gmail_settings_screen.dart';
@@ -251,6 +252,7 @@ class _Home extends State<ReportHome> with WindowListener, TrayListener {
     reminderVisible = true;
     bool? wasOnTop;
     ReminderAction? action;
+    final sound = ReminderSound();
     try {
       wasOnTop = await windowManager.isAlwaysOnTop();
       if (await windowManager.isMinimized()) await windowManager.restore();
@@ -258,12 +260,14 @@ class _Home extends State<ReportHome> with WindowListener, TrayListener {
       await windowManager.setAlwaysOnTop(true);
       await open();
       if (!mounted) return;
+      unawaited(sound.start());
       action = await showDialog<ReminderAction>(
         context: context,
         barrierDismissible: false,
         builder: (_) => ReminderDialog(message: body),
       );
     } finally {
+      await sound.stop();
       reminderVisible = false;
       if (wasOnTop != null) await windowManager.setAlwaysOnTop(wasOnTop);
     }
