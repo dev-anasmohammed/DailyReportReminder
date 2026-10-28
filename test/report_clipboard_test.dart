@@ -10,15 +10,15 @@ void main() {
       'App',
       List.generate(12, (i) => 'Task ${i + 1}'),
     )!;
-    expect(body, startsWith('**App:**\n01. Task 1\n02. Task 2'));
-    expect(body, contains('09. Task 9\n10. Task 10\n11. Task 11'));
+    expect(body, startsWith('**App:**\n01- Task 1\n02- Task 2'));
+    expect(body, contains('09- Task 9\n10- Task 10\n11- Task 11'));
     expect(
       normalizeReportBody('**A/**\n- One\n- Two\n\n**B/**\n- Three'),
-      '**A:**\n01. One\n02. Two\n\n**B:**\n01. Three',
+      '**A:**\n01- One\n02- Two\n\n**B:**\n01- Three',
     );
     final html = reportHtml('**A/**\n- One\n- Two', '', '');
-    expect(html, contains('>01</td>'));
-    expect(html, contains('>02</td>'));
+    expect(html, contains('>01-</td>'));
+    expect(html, contains('>02-</td>'));
     expect(html, isNot(contains('<ul>')));
   });
   test('old empty placeholders are removed without touching real work', () {
@@ -39,7 +39,7 @@ void main() {
     expect(formatProjectCommits('Empty', []), isNull);
     expect(
       formatProjectCommits('App', ['First', 'Second']),
-      '**App:**\n01. First\n02. Second',
+      '**App:**\n01- First\n02- Second',
     );
   });
   test(
@@ -69,7 +69,7 @@ void main() {
       '- Tests',
       '- Need API',
     );
-    expect(plain, contains('App:\n01 Fixed login'));
+    expect(plain, contains('App:\n01- Fixed login'));
     expect(plain, isNot(contains('**')));
     expect(plain, contains('2. What I will work on tomorrow:'));
   });
@@ -89,6 +89,6 @@ void main() {
     expect(captured?.method, 'write');
     final args = captured!.arguments as Map;
     expect(args['html'], contains('<strong>App:</strong>'));
-    expect(args['text'], contains('App:\n01 Fixed'));
+    expect(args['text'], contains('App:\n01- Fixed'));
   });
 }

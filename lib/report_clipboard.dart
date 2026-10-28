@@ -28,7 +28,7 @@ String _plainBody(String source) {
           .whereType<md.Element>()
           .where((e) => e.tag == 'li')
           .toList();
-      return '${[for (var i = 0; i < items.length; i++) '${(i + 1).toString().padLeft(2, '0')} ${render(items[i]).trim()}'].join('\n')}\n';
+      return '${[for (var i = 0; i < items.length; i++) '${(i + 1).toString().padLeft(2, '0')}- ${render(items[i]).trim()}'].join('\n')}\n';
     }
     if (node.tag == 'br') return '\n';
     if (['p', 'ul', 'ol', 'blockquote', 'h1', 'h2', 'h3'].contains(node.tag)) {
@@ -65,7 +65,7 @@ String _htmlBody(String source) {
           .whereType<md.Element>()
           .where((e) => e.tag == 'li')
           .toList();
-      return '<table role="presentation" style="border-collapse:collapse;margin:8px 0 16px 12px">${[for (var i = 0; i < items.length; i++) '<tr><td style="vertical-align:top;padding:2px 12px 2px 0;white-space:nowrap">${(i + 1).toString().padLeft(2, '0')}</td><td style="vertical-align:top;padding:2px 0">${render(items[i])}</td></tr>'].join()}</table>';
+      return '<table role="presentation" style="border-collapse:collapse;margin:8px 0 16px 12px">${[for (var i = 0; i < items.length; i++) '<tr><td style="vertical-align:top;padding:2px 12px 2px 0;white-space:nowrap">${(i + 1).toString().padLeft(2, '0')}-</td><td style="vertical-align:top;padding:2px 0">${render(items[i])}</td></tr>'].join()}</table>';
     }
     final content = (node.children ?? []).map(render).join();
     if (node.tag == 'li') return content;
@@ -78,6 +78,6 @@ String _htmlBody(String source) {
 
 String _listSource(String source) => normalizeReportBody(source)
     .replaceAllMapped(
-      RegExp(r'^([ \t]*)\d+\.\s+', multiLine: true),
+      RegExp(r'^([ \t]*)\d+[.-]\s+', multiLine: true),
       (match) => '${match[1]}- ',
     );

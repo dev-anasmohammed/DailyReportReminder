@@ -92,11 +92,11 @@ String normalizeReportBody(String source) {
           number = 0;
           return '**${heading[1]}:**';
         }
-        final item = RegExp(r'^(\s*)(?:[-+*]|\d+[.)])\s+(.+)$')
+        final item = RegExp(r'^(\s*)(?:[-+*]|\d+[.)-])\s+(.+)$')
             .firstMatch(line);
         if (item != null) {
           number++;
-          return '${item[1]}${number.toString().padLeft(2, '0')}. ${item[2]}';
+          return '${item[1]}${number.toString().padLeft(2, '0')}- ${item[2]}';
         }
         if (line.trim().isNotEmpty) number = 0;
         return line;
