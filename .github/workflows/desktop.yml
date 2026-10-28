@@ -1,0 +1,38 @@
+name: Desktop builds
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+jobs:
+  desktop:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+      - run: flutter pub get
+      - run: dart format --output=none --set-exit-if-changed lib test
+      - run: flutter analyze
+      - run: flutter test
+      - if: runner.os == 'Windows'
+        run: flutter build windows --release
+      - if: runner.os == 'macOS'
+        run: flutter build macos --release
+      - if: runner.os == 'Windows'
+        uses: actions/upload-artifact@v4
+        with:
+          name: DailyReport-Windows
+          path: build/windows/x64/runner/Release/
+      - if: runner.os == 'macOS'
+        run: ditto -c -k --sequesterRsrc --keepParent "build/macos/Build/Products/Release/Daily Report.app" DailyReport-macOS.zip
+      - if: runner.os == 'macOS'
+        uses: actions/upload-artifact@v4
+        with:
+          name: DailyReport-macOS
+          path: DailyReport-macOS.zip
