@@ -66,7 +66,9 @@ Future<List<String>> readCommits(
 String? formatProjectCommits(String project, List<String> commits) =>
     commits.isEmpty
     ? null
-    : '**$project/**\n${commits.map((c) => '- $c').join('\n')}';
+    : normalizeReportBody(
+        '**$project:**\n${commits.map((c) => '- $c').join('\n')}',
+      );
 
 String removeEmptyProjectSections(String source) {
   final blocks = source.split(RegExp(r'\r?\n[ \t]*\r?\n'));
@@ -78,4 +80,26 @@ String removeEmptyProjectSections(String source) {
         lines.last == '- No commits today.');
   }).toList();
   return kept.length == blocks.length ? source : kept.join('\n\n').trim();
+}
+
+String normalizeReportBody(String source) {
+  var number = 0;
+  return source
+      .split('\n')
+      .map((line) {
+        final heading = RegExp(r'^\*\*(.+?)/\*\*\s*$').firstMatch(line.trim());
+        if (heading != null) {
+          number = 0;
+          return '**${heading[1]}:**';
+        }
+        final item = RegExp(r'^(\s*)(?:[-+*]|\d+[.)])\s+(.+)$')
+            .firstMatch(line);
+        if (item != null) {
+          number++;
+          return '${item[1]}${number.toString().padLeft(2, '0')}. ${item[2]}';
+        }
+        if (line.trim().isNotEmpty) number = 0;
+        return line;
+      })
+      .join('\n');
 }

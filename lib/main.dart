@@ -93,7 +93,7 @@ class _Home extends State<ReportHome> with WindowListener, TrayListener {
     loading = true;
     day = dateKey(DateTime.now());
     final savedWork = prefs.getString('$day.today') ?? '';
-    today.text = removeEmptyProjectSections(savedWork);
+    today.text = normalizeReportBody(removeEmptyProjectSections(savedWork));
     if (today.text != savedWork) {
       unawaited(prefs.setString('$day.today', today.text));
     }
@@ -650,13 +650,13 @@ class _Home extends State<ReportHome> with WindowListener, TrayListener {
       field(
         today,
         '1. What I have worked on today',
-        '**Project X/**\n- Finished…',
+        '**Project X:**\n- Finished…',
         6,
       ),
       field(
         tomorrow,
         '2. What I will work on tomorrow',
-        '**Project Z/**\n- I’ll finish…',
+        '**Project Z:**\n- I’ll finish…',
         3,
       ),
       field(blockers, '3. Blockers and issues', '- I need…\n- I faced…', 2),
