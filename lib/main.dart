@@ -31,7 +31,9 @@ Future<void> main() async {
   await windowManager.setMinimumSize(const Size(840, 650));
   launchAtStartup.setup(
     appName: 'Daily Report',
-    appPath: Platform.resolvedExecutable,
+    appPath: Platform.isWindows
+        ? '"${Platform.resolvedExecutable}"'
+        : Platform.resolvedExecutable,
   );
   runApp(ReportApp(prefs: await SharedPreferences.getInstance()));
 }
@@ -177,6 +179,10 @@ class _Home extends State<ReportHome> with WindowListener, TrayListener {
   Future<void> desktop() async {
     try {
       startup = await launchAtStartup.isEnabled();
+    } catch (e) {
+      fail('Could not check sign-in startup: $e');
+    }
+    try {
       await trayManager.setIcon(
         Platform.isWindows ? 'assets/tray.ico' : 'assets/tray.png',
         isTemplate: false,

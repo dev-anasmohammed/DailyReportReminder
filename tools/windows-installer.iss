@@ -32,6 +32,7 @@ RestartApplications=no
 
 [Tasks]
 Name: "desktopicon"; Description: "Create a desktop shortcut"; Flags: unchecked
+Name: "startup"; Description: "Start DailyReport when I sign in"
 
 [Files]
 Source: "{#ReleaseDir}\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
@@ -40,6 +41,12 @@ Source: "{#RuntimeDir}\*.dll"; DestDir: "{app}"; Flags: ignoreversion
 [Icons]
 Name: "{group}\DailyReport"; Filename: "{app}\daily_report_reminder.exe"; AppUserModelID: "com.anas.dailyreport.reminder"
 Name: "{autodesktop}\DailyReport"; Filename: "{app}\daily_report_reminder.exe"; Tasks: desktopicon; AppUserModelID: "com.anas.dailyreport.reminder"
+
+[Registry]
+Root: HKCU; Subkey: "Software\Microsoft\Windows\CurrentVersion\Run"; ValueType: string; ValueName: "Daily Report"; ValueData: """{app}\daily_report_reminder.exe"""; Flags: uninsdeletevalue; Tasks: startup
+Root: HKCU; Subkey: "Software\Microsoft\Windows\CurrentVersion\Explorer\StartupApproved\Run"; ValueType: binary; ValueName: "Daily Report"; ValueData: "02 00 00 00 00 00 00 00 00 00 00 00"; Flags: createvalueifdoesntexist uninsdeletevalue; Tasks: startup
+Root: HKCU; Subkey: "Software\Microsoft\Windows\CurrentVersion\Run"; ValueName: "Daily Report"; Flags: deletevalue; Tasks: not startup
+Root: HKCU; Subkey: "Software\Microsoft\Windows\CurrentVersion\Explorer\StartupApproved\Run"; ValueName: "Daily Report"; Flags: deletevalue; Tasks: not startup
 
 [Run]
 Filename: "{app}\daily_report_reminder.exe"; Description: "Launch DailyReport"; Flags: nowait postinstall skipifsilent

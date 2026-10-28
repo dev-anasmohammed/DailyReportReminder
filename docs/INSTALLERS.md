@@ -7,6 +7,8 @@ The Desktop builds GitHub Actions workflow publishes two installer artifacts:
 
 Both installations start with local profile setup. Install Git to collect commits, add local project folders, and configure Gmail on each computer. No user profiles, report drafts, or Gmail credentials are included in these installers.
 
+Windows setup selects **Start DailyReport when I sign in** by default. This registers the installed executable in the current user's Windows startup list, including when its path contains spaces. You can disable it during installation, in the app's Settings, or in Task Manager → Startup apps. If Windows previously disabled this startup item, enable it there. Reminders run after sign-in while the app is running; closing the app window keeps it in the tray, whereas Quit stops reminders. The app cannot display a reminder while the PC is powered off or while you are signed out.
+
 These builds do not have a commercial Windows code-signing certificate or an Apple Developer ID signature and notarization. Windows or macOS may require approval before opening. Only approve downloads you trust. Apple signing and notarization must be configured before a broadly distributed macOS release.
 
 ## Rebuild locally

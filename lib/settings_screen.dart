@@ -190,6 +190,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
             SwitchListTile(
               contentPadding: EdgeInsets.zero,
               title: const Text('Open when I sign in'),
+              subtitle: const Text(
+                'Keeps reminders running after you sign in. Closing the window leaves the app in the tray; Quit stops reminders.',
+              ),
               value: startup,
               onChanged: (v) async {
                 try {
