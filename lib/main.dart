@@ -125,7 +125,7 @@ class _Home extends State<ReportHome> with WindowListener, TrayListener {
       startup = await launchAtStartup.isEnabled();
       await trayManager.setIcon(
         Platform.isWindows ? 'assets/tray.ico' : 'assets/tray.png',
-        isTemplate: Platform.isMacOS,
+        isTemplate: false,
       );
       await trayManager.setToolTip('Daily Report');
       await trayManager.setContextMenu(

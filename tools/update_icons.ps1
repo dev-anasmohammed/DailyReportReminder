@@ -1,4 +1,4 @@
-# Regenerate desktop icon assets from the supplied Flaticon PNG on Windows.
+# Regenerate desktop icon assets from assets/app_icon.png on Windows.
 $ErrorActionPreference = 'Stop'
 Add-Type -AssemblyName System.Drawing
 $root = Split-Path -Parent $PSScriptRoot
@@ -42,3 +42,4 @@ try {
     [System.IO.File]::WriteAllBytes((Join-Path $root 'assets/tray.ico'),$stream.ToArray())
   } finally {$writer.Dispose();$stream.Dispose()}
 } finally {$source.Dispose()}
+
