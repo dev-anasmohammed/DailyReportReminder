@@ -62,22 +62,3 @@ Future<List<String>> readCommits(
   });
   return records.map((r) => r.subject).toList();
 }
-
-List<int> dueReminders(
-  DateTime now,
-  DateTime start,
-  int firstMinutes,
-  int minutesBeforeEnd,
-  Set<int> delivered,
-) {
-  final deadlines = [
-    start.add(Duration(minutes: firstMinutes)),
-    start
-        .add(const Duration(hours: 8))
-        .subtract(Duration(minutes: minutesBeforeEnd)),
-  ];
-  return [
-    for (var i = 0; i < deadlines.length; i++)
-      if (!now.isBefore(deadlines[i]) && !delivered.contains(i)) i,
-  ];
-}

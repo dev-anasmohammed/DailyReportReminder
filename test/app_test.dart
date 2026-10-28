@@ -23,6 +23,8 @@ void main() {
     await tester.pumpWidget(ReportApp(prefs: prefs));
     await tester.pumpAndSettle();
     expect(find.text('Make your work count.'), findsOneWidget);
+    expect(find.text('Your workday'), findsNothing);
+    expect(find.byTooltip('Settings'), findsOneWidget);
     expect(prefs.getString('$day.tomorrow'), '- Existing plan');
     final workField = find.byType(TextField).at(1);
     await tester.ensureVisible(workField);

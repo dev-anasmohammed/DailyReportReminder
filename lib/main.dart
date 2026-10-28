@@ -13,6 +13,8 @@ import 'package:tray_manager/legacy.dart';
 import 'package:window_manager/window_manager.dart';
 
 import 'report.dart';
+import 'schedule.dart';
+import 'settings_screen.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -58,9 +60,9 @@ class _Home extends State<ReportHome> with WindowListener, TrayListener {
       blockers = TextEditingController(),
       author = TextEditingController();
   List<String> projects = [];
-  late DateTime start;
+  late DailySchedule schedule;
   late String day;
-  int first = 240, before = 30;
+
   bool busy = false,
       completed = false,
       startup = false,
@@ -72,14 +74,13 @@ class _Home extends State<ReportHome> with WindowListener, TrayListener {
   final notifications = <LocalNotification>[];
   final reportKey = GlobalKey();
   SharedPreferences get prefs => widget.prefs;
-  DateTime get end => start.add(const Duration(hours: 8));
+
   @override
   void initState() {
     super.initState();
     projects = prefs.getStringList('projects') ?? [];
     author.text = prefs.getString('author') ?? '';
-    first = prefs.getInt('first') ?? 240;
-    before = prefs.getInt('before') ?? 30;
+    schedule = DailySchedule.load(prefs);
     loadDay();
     for (final c in [today, tomorrow, blockers, author]) {
       c.addListener(save);
@@ -93,18 +94,13 @@ class _Home extends State<ReportHome> with WindowListener, TrayListener {
     );
   }
 
-  void loadDay({DateTime? suggested}) {
+  void loadDay() {
     loading = true;
     day = dateKey(DateTime.now());
-    start =
-        DateTime.tryParse(prefs.getString('$day.start') ?? '') ??
-        suggested ??
-        DateTime.now();
     today.text = prefs.getString('$day.today') ?? '';
     tomorrow.text = prefs.getString('$day.tomorrow') ?? '';
     blockers.text = prefs.getString('$day.blockers') ?? '';
     completed = prefs.getBool('$day.completed') ?? false;
-    unawaited(prefs.setString('$day.start', start.toIso8601String()));
     loading = false;
   }
 
@@ -227,15 +223,7 @@ class _Home extends State<ReportHome> with WindowListener, TrayListener {
       final now = DateTime.now();
       if (day != dateKey(now)) {
         save();
-        loadDay(
-          suggested: DateTime(
-            now.year,
-            now.month,
-            now.day,
-            start.hour,
-            start.minute,
-          ),
-        );
+        loadDay();
       }
       if (mounted) {
         setState(() {});
@@ -244,23 +232,22 @@ class _Home extends State<ReportHome> with WindowListener, TrayListener {
         return;
       }
       final snooze = DateTime.tryParse(prefs.getString('$day.snooze') ?? '');
-      if (snooze != null) {
-        if (now.isBefore(snooze)) {
-          return;
-        }
-        await notify('Your snoozed report reminder is due.');
-        await prefs.remove('$day.snooze');
+      if (snooze != null && now.isBefore(snooze)) {
+        return;
       }
-      final due = dueReminders(now, start, first, before, {
-        for (var i = 0; i < 2; i++)
-          if (prefs.getBool('$day.reminder$i') ?? false) i,
+      final due = schedule.due(now, {
+        for (final minute in schedule.reminders)
+          if (prefs.getBool('$day.scheduled.$minute') ?? false) minute,
       });
-      if (due.isNotEmpty) {
+      if (due.isNotEmpty || snooze != null) {
         await notify(
-          'Update your report before you leave. Your workday ends at ${clock(end)}.',
+          'Update your report before you leave. Your workday ends at ${clock(schedule.at(now, schedule.end))}.',
         );
+        if (snooze != null) {
+          await prefs.remove('$day.snooze');
+        }
         for (final i in due) {
-          await prefs.setBool('$day.reminder$i', true);
+          await prefs.setBool('$day.scheduled.$i', true);
         }
       }
     } catch (e) {
@@ -338,41 +325,35 @@ class _Home extends State<ReportHome> with WindowListener, TrayListener {
     }
   }
 
-  Future<void> changeStart() async {
-    final t = await showTimePicker(
-      context: context,
-      initialTime: TimeOfDay.fromDateTime(start),
-    );
-    if (t == null) {
-      return;
+  Future<bool> toggleStartup(bool value) async {
+    if (value) {
+      await launchAtStartup.enable();
+    } else {
+      await launchAtStartup.disable();
     }
-    setState(
-      () => start = DateTime(
-        start.year,
-        start.month,
-        start.day,
-        t.hour,
-        t.minute,
-      ),
-    );
-    await prefs.setString('$day.start', start.toIso8601String());
-    await tick();
+    final enabled = await launchAtStartup.isEnabled();
+    if (mounted) setState(() => startup = enabled);
+    return enabled;
   }
 
-  Future<void> toggleStartup(bool v) async {
-    try {
-      if (v) {
-        await launchAtStartup.enable();
-      } else {
-        await launchAtStartup.disable();
-      }
-      final enabled = await launchAtStartup.isEnabled();
-      if (mounted) {
-        setState(() => startup = enabled);
-      }
-    } catch (e) {
-      fail('Could not change startup: $e');
-    }
+  Future<void> settings() async {
+    await Navigator.push<void>(
+      context,
+      MaterialPageRoute(
+        builder: (_) => SettingsScreen(
+          schedule: schedule,
+          startup: startup,
+          onStartup: toggleStartup,
+          onTest: () =>
+              notify('Test reminder — your report is one click away.'),
+          onSave: (value) async {
+            await value.save(prefs);
+            if (mounted) setState(() => schedule = value);
+          },
+        ),
+      ),
+    );
+    await tick();
   }
 
   @override
@@ -438,6 +419,11 @@ class _Home extends State<ReportHome> with WindowListener, TrayListener {
                   ],
                 ),
               ),
+              IconButton(
+                tooltip: 'Settings',
+                onPressed: settings,
+                icon: const Icon(Icons.settings_outlined),
+              ),
               FilledButton.icon(
                 onPressed: showReport,
                 icon: const Icon(Icons.logout),
@@ -462,116 +448,6 @@ class _Home extends State<ReportHome> with WindowListener, TrayListener {
                 ),
               ),
             ),
-          panel('Your workday', [
-            Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    'Start ${clock(start)} → Finish ${clock(end)}',
-                    style: Theme.of(context).textTheme.titleMedium,
-                  ),
-                ),
-                OutlinedButton(
-                  onPressed: changeStart,
-                  child: const Text('Change start'),
-                ),
-              ],
-            ),
-            const SizedBox(height: 12),
-            const Text(
-              'Eight hours from your start time. Today’s first launch suggests your start; adjust it if needed. Reminders run on days you use the app.',
-            ),
-            const SizedBox(height: 16),
-            Row(
-              children: [
-                Expanded(
-                  child: DropdownButtonFormField<int>(
-                    initialValue: first,
-                    decoration: const InputDecoration(
-                      labelText: 'First reminder after starting',
-                    ),
-                    items: [120, 180, 240, 300, 360]
-                        .map(
-                          (v) => DropdownMenuItem(
-                            value: v,
-                            child: Text('${v ~/ 60} hours'),
-                          ),
-                        )
-                        .toList(),
-                    onChanged: (v) {
-                      if (v != null) {
-                        setState(() => first = v);
-                        unawaited(prefs.setInt('first', v));
-                      }
-                    },
-                  ),
-                ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: DropdownButtonFormField<int>(
-                    initialValue: before,
-                    decoration: const InputDecoration(
-                      labelText: 'Second reminder before finishing',
-                    ),
-                    items: [0, 15, 30, 60]
-                        .map(
-                          (v) => DropdownMenuItem(
-                            value: v,
-                            child: Text('$v minutes'),
-                          ),
-                        )
-                        .toList(),
-                    onChanged: (v) {
-                      if (v != null) {
-                        setState(() => before = v);
-                        unawaited(prefs.setInt('before', v));
-                      }
-                    },
-                  ),
-                ),
-              ],
-            ),
-            SwitchListTile(
-              contentPadding: EdgeInsets.zero,
-              title: const Text('Open when I sign in'),
-              value: startup,
-              onChanged: toggleStartup,
-            ),
-            TextButton.icon(
-              onPressed: () async {
-                try {
-                  await notify(
-                    'Test reminder — your report is one click away.',
-                  );
-                } catch (e) {
-                  fail(e);
-                }
-              },
-              icon: const Icon(Icons.notifications_outlined),
-              label: const Text('Test notification'),
-            ),
-            TextButton(
-              onPressed: () async {
-                await prefs.setString(
-                  '$day.snooze',
-                  DateTime.now()
-                      .add(const Duration(minutes: 10))
-                      .toIso8601String(),
-                );
-                if (context.mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Reminder snoozed for 10 minutes'),
-                    ),
-                  );
-                }
-              },
-              child: const Text('Remind me in 10 minutes'),
-            ),
-            const Text(
-              'Closing the window keeps reminders running in the tray. Quit from the tray to stop them.',
-            ),
-          ]),
           panel('Your projects', [
             for (final path in projects)
               ListTile(

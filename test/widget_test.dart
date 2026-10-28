@@ -4,26 +4,6 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:daily_report_reminder/report.dart';
 
 void main() {
-  test('reminders follow variable start times and catch up once', () {
-    final start = DateTime(2026, 10, 28, 9, 30);
-    expect(clock(start.add(const Duration(hours: 8))), '17:30');
-    expect(
-      dueReminders(DateTime(2026, 10, 28, 13, 29), start, 240, 30, {}),
-      isEmpty,
-    );
-    expect(dueReminders(DateTime(2026, 10, 28, 13, 30), start, 240, 30, {}), [
-      0,
-    ]);
-    expect(dueReminders(DateTime(2026, 10, 28, 18), start, 240, 30, {}), [
-      0,
-      1,
-    ]);
-    expect(
-      dueReminders(DateTime(2026, 10, 28, 18), start, 240, 30, {0, 1}),
-      isEmpty,
-    );
-    expect(dueReminders(DateTime(2026, 10, 28, 17), start, 240, 30, {0}), [1]);
-  });
   test('report retains three sections and project formatting', () {
     final report = formatReport(
       '**App/**\n- Finished login',
