@@ -28,9 +28,9 @@ Windows requires Visual Studio's **Desktop development with C++** workload and D
 dart format lib test
 flutter analyze
 flutter test
-flutter build windows --release
+flutter build windows --release --no-tree-shake-icons
 # On a Mac:
-flutter build macos --release
+flutter build macos --release --no-tree-shake-icons
 ```
 
 GitHub Actions checks both targets and uploads desktop build artifacts. Windows users need the whole Release folder, not just its executable. macOS artifacts are unsigned development builds; distribution requires Apple signing and notarization.

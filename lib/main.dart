@@ -12,6 +12,7 @@ import 'package:tray_manager/legacy.dart';
 import 'package:window_manager/window_manager.dart';
 
 import 'report.dart';
+import 'app_theme.dart';
 import 'schedule.dart';
 import 'settings_screen.dart';
 import 'reminder_dialog.dart';
@@ -35,14 +36,7 @@ class ReportApp extends StatelessWidget {
   Widget build(BuildContext context) => MaterialApp(
     debugShowCheckedModeBanner: false,
     title: 'Daily Report',
-    theme: ThemeData(
-      useMaterial3: true,
-      colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xff22665c)),
-      scaffoldBackgroundColor: const Color(0xfff4f7f6),
-      inputDecorationTheme: const InputDecorationTheme(
-        border: OutlineInputBorder(),
-      ),
-    ),
+    theme: reportTheme(),
     home: ReportHome(prefs: prefs),
   );
 }
@@ -151,6 +145,10 @@ class _Home extends State<ReportHome> with WindowListener, TrayListener {
 
   Future<void> showReport() async {
     await open();
+    if (projectView && mounted) {
+      setState(() => projectView = false);
+      await WidgetsBinding.instance.endOfFrame;
+    }
     final target = reportKey.currentContext;
     if (target != null && target.mounted) {
       await Scrollable.ensureVisible(
@@ -375,192 +373,498 @@ class _Home extends State<ReportHome> with WindowListener, TrayListener {
     super.dispose();
   }
 
-  Widget panel(String title, List<Widget> children) => Card(
-    elevation: 0,
-    color: Colors.white,
-    key: title == 'Your report' ? reportKey : null,
-    child: Padding(
-      padding: const EdgeInsets.all(24),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(title, style: Theme.of(context).textTheme.titleLarge),
-          const SizedBox(height: 18),
-          ...children,
-        ],
+  bool projectView = false;
+
+  Future<void> copyReport() async {
+    await Clipboard.setData(
+      ClipboardData(
+        text: formatReport(today.text, tomorrow.text, blockers.text),
       ),
-    ),
-  );
-  Widget field(TextEditingController c, String label, String hint, int lines) =>
-      Padding(
-        padding: const EdgeInsets.only(top: 20),
-        child: TextField(
-          controller: c,
+    );
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Report copied as Markdown')),
+      );
+    }
+  }
+
+  Widget field(
+    TextEditingController controller,
+    String title,
+    String hint,
+    int lines,
+  ) => Padding(
+    padding: const EdgeInsets.only(top: 24),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(title, style: Theme.of(context).textTheme.titleMedium),
+        const SizedBox(height: 10),
+        TextField(
+          key: ValueKey(title),
+          controller: controller,
           minLines: lines,
           maxLines: null,
-          decoration: InputDecoration(
-            labelText: label,
-            hintText: hint,
-            alignLabelWithHint: true,
-          ),
+          style: const TextStyle(fontSize: 13, height: 1.7),
+          decoration: InputDecoration(hintText: hint),
         ),
-      );
-  @override
-  Widget build(BuildContext context) => Scaffold(
-    body: SafeArea(
-      child: ListView(
-        padding: const EdgeInsets.all(32),
-        children: [
-          Row(
-            children: [
-              Image.asset('assets/app_icon.png', width: 36, height: 36),
-              const SizedBox(width: 16),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Make your work count.',
-                      style: Theme.of(context).textTheme.headlineMedium,
-                    ),
-                    Text('Daily Report / $day / Saved on this computer'),
-                  ],
-                ),
-              ),
-              IconButton(
-                tooltip: 'Settings',
-                onPressed: settings,
-                icon: const Icon(Icons.settings_outlined),
-              ),
-              FilledButton.icon(
-                onPressed: showReport,
-                icon: const Icon(Icons.logout),
-                label: const Text('I’m leaving now'),
-              ),
-            ],
-          ),
-          const SizedBox(height: 24),
-          if (error != null)
-            Card(
-              color: Theme.of(context).colorScheme.errorContainer,
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Row(
-                  children: [
-                    Expanded(child: SelectableText(error!)),
-                    IconButton(
-                      onPressed: () => setState(() => error = null),
-                      icon: const Icon(Icons.close),
-                    ),
-                  ],
-                ),
+      ],
+    ),
+  );
+
+  Widget railButton(
+    IconData icon,
+    String tooltip,
+    VoidCallback onTap, {
+    bool selected = false,
+  }) => Padding(
+    padding: const EdgeInsets.symmetric(vertical: 7),
+    child: IconButton(
+      tooltip: tooltip,
+      onPressed: onTap,
+      style: IconButton.styleFrom(
+        backgroundColor: selected
+            ? const Color(0xfff0f1f3)
+            : Colors.transparent,
+        foregroundColor: selected ? ink : muted,
+        fixedSize: const Size(40, 40),
+      ),
+      icon: Icon(icon),
+    ),
+  );
+
+  Widget projectsPanel() => Container(
+    padding: const EdgeInsets.all(22),
+    decoration: BoxDecoration(
+      border: Border.all(color: line),
+      borderRadius: BorderRadius.circular(12),
+    ),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            const Icon(Icons.folder_open_outlined, size: 18),
+            const SizedBox(width: 9),
+            const Expanded(
+              child: Text(
+                'Your projects',
+                style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
               ),
             ),
-          panel('Your projects', [
-            for (final path in projects)
-              ListTile(
-                contentPadding: EdgeInsets.zero,
-                leading: const Icon(Icons.folder_outlined),
-                title: Text(name(path)),
-                subtitle: Text(path),
-                trailing: IconButton(
+            Text(
+              '${projects.length}',
+              style: const TextStyle(color: muted, fontSize: 12),
+            ),
+          ],
+        ),
+        const SizedBox(height: 8),
+        const Text(
+          'Connect the repositories you work on.',
+          style: TextStyle(color: muted, fontSize: 12),
+        ),
+        const SizedBox(height: 20),
+        if (projects.isEmpty)
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 12),
+            decoration: BoxDecoration(
+              color: const Color(0xfff8f9fb),
+              borderRadius: BorderRadius.circular(9),
+            ),
+            child: const Column(
+              children: [
+                Icon(
+                  Icons.create_new_folder_outlined,
+                  color: Color(0xffabb6c7),
+                  size: 28,
+                ),
+                SizedBox(height: 10),
+                Text(
+                  'A place for your projects',
+                  style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500),
+                ),
+                SizedBox(height: 4),
+                Text(
+                  'Add a Git folder to get started.',
+                  style: TextStyle(fontSize: 11, color: muted),
+                ),
+              ],
+            ),
+          ),
+        for (final path in projects)
+          Padding(
+            padding: const EdgeInsets.only(bottom: 10),
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(9),
+                  decoration: BoxDecoration(
+                    color: const Color(0xffeef4ff),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: const Icon(
+                    Icons.folder_outlined,
+                    size: 17,
+                    color: accent,
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        name(path),
+                        style: const TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      Tooltip(
+                        message: path,
+                        child: Text(
+                          path,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(fontSize: 10, color: muted),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                IconButton(
                   tooltip: 'Remove project',
-                  icon: const Icon(Icons.close),
                   onPressed: () {
                     setState(() => projects.remove(path));
                     unawaited(prefs.setStringList('projects', projects));
                   },
-                ),
-              ),
-            OutlinedButton.icon(
-              onPressed: add,
-              icon: const Icon(Icons.add),
-              label: const Text('Add project folder'),
-            ),
-            field(
-              author,
-              'Git author email (optional)',
-              'Blank uses each repository’s configured email.',
-              1,
-            ),
-            const SizedBox(height: 12),
-            const Text(
-              'Your commits across local branches, oldest first, using today’s local date. Git must be installed.',
-            ),
-          ]),
-          panel('Your report', [
-            Row(
-              children: [
-                FilledButton.icon(
-                  onPressed: busy || projects.isEmpty ? null : collect,
-                  icon: const Icon(Icons.sync),
-                  label: Text(
-                    busy ? 'Reading commits…' : 'Collect today’s commits',
-                  ),
-                ),
-                const SizedBox(width: 12),
-                TextButton(
-                  onPressed: () async {
-                    await Clipboard.setData(
-                      ClipboardData(
-                        text: formatReport(
-                          today.text,
-                          tomorrow.text,
-                          blockers.text,
-                        ),
-                      ),
-                    );
-                    if (context.mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('Report copied as Markdown'),
-                        ),
-                      );
-                    }
-                  },
-                  child: const Text('Copy report'),
+                  icon: const Icon(Icons.close, size: 15),
                 ),
               ],
             ),
-            field(
-              today,
-              '1. What I have worked on today',
-              '**Project X/**\n- Finished…',
-              5,
-            ),
-            field(
-              tomorrow,
-              '2. What I will work on tomorrow',
-              '**Project Z/**\n- I’ll finish…',
-              3,
-            ),
-            field(
-              blockers,
-              '3. Blockers and issues',
-              '- I need…\n- I faced…',
-              2,
-            ),
-            CheckboxListTile(
-              contentPadding: EdgeInsets.zero,
-              title: const Text('Report completed for today'),
-              subtitle: const Text(
-                'Stops today’s reminders. Copy your report to share it.',
+          ),
+        const SizedBox(height: 14),
+        SizedBox(
+          width: double.infinity,
+          child: OutlinedButton.icon(
+            onPressed: add,
+            icon: const Icon(Icons.add, size: 16),
+            label: const Text('Add project folder'),
+          ),
+        ),
+        const Padding(
+          padding: EdgeInsets.symmetric(vertical: 22),
+          child: Divider(),
+        ),
+        const Text(
+          'Git identity',
+          style: TextStyle(fontWeight: FontWeight.w600, fontSize: 12),
+        ),
+        const SizedBox(height: 8),
+        TextField(
+          controller: author,
+          decoration: const InputDecoration(hintText: 'Your email (optional)'),
+          style: const TextStyle(fontSize: 12),
+        ),
+        const SizedBox(height: 8),
+        const Text(
+          'Leave blank to use each repository’s configured email.',
+          style: TextStyle(color: muted, fontSize: 11),
+        ),
+        const SizedBox(height: 20),
+        const Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Icon(Icons.info_outline, size: 14, color: muted),
+            SizedBox(width: 7),
+            Expanded(
+              child: Text(
+                'Commits are collected oldest first. Only your commits from today are included.',
+                style: TextStyle(color: muted, fontSize: 11),
               ),
-              value: completed,
-              onChanged: (v) {
-                setState(() => completed = v ?? false);
-                unawaited(prefs.setBool('$day.completed', completed));
-              },
             ),
-            TextButton(
-              onPressed: history,
-              child: const Text('View saved reports'),
+          ],
+        ),
+      ],
+    ),
+  );
+
+  Widget reportPanel() => Column(
+    key: reportKey,
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      Row(
+        children: [
+          const Expanded(
+            child: Text(
+              'Today’s report',
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
             ),
-          ]),
+          ),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
+            decoration: BoxDecoration(
+              color: completed
+                  ? const Color(0xffedf7f0)
+                  : const Color(0xfff2f5fa),
+              borderRadius: BorderRadius.circular(6),
+            ),
+            child: Text(
+              completed ? 'Completed' : 'Draft',
+              style: TextStyle(
+                fontSize: 11,
+                color: completed ? const Color(0xff3e8762) : muted,
+              ),
+            ),
+          ),
+        ],
+      ),
+      const SizedBox(height: 5),
+      const Text(
+        'A clear record of your day. Everything saves as you type.',
+        style: TextStyle(color: muted, fontSize: 12),
+      ),
+      const SizedBox(height: 20),
+      Wrap(
+        spacing: 10,
+        runSpacing: 10,
+        children: [
+          FilledButton.icon(
+            onPressed: busy || projects.isEmpty ? null : collect,
+            icon: const Icon(Icons.sync, size: 16),
+            label: Text(busy ? 'Reading commits…' : 'Collect today’s commits'),
+          ),
+          OutlinedButton.icon(
+            onPressed: copyReport,
+            icon: const Icon(Icons.copy_outlined, size: 15),
+            label: const Text('Copy report'),
+          ),
+        ],
+      ),
+      field(
+        today,
+        '1. What I have worked on today',
+        '**Project X/**\n- Finished…',
+        6,
+      ),
+      field(
+        tomorrow,
+        '2. What I will work on tomorrow',
+        '**Project Z/**\n- I’ll finish…',
+        3,
+      ),
+      field(blockers, '3. Blockers and issues', '- I need…\n- I faced…', 2),
+      const SizedBox(height: 20),
+      const Divider(),
+      CheckboxListTile(
+        contentPadding: EdgeInsets.zero,
+        controlAffinity: ListTileControlAffinity.leading,
+        title: const Text(
+          'Report completed for today',
+          style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500),
+        ),
+        subtitle: const Text(
+          'Stops your reminders for the rest of the day.',
+          style: TextStyle(fontSize: 11, color: muted),
+        ),
+        value: completed,
+        onChanged: (v) {
+          setState(() => completed = v ?? false);
+          unawaited(prefs.setBool('$day.completed', completed));
+        },
+      ),
+    ],
+  );
+
+  @override
+  Widget build(BuildContext context) => Scaffold(
+    body: SafeArea(
+      child: Row(
+        children: [
+          Container(
+            width: 68,
+            decoration: const BoxDecoration(
+              border: Border(right: BorderSide(color: line)),
+            ),
+            child: Column(
+              children: [
+                const SizedBox(height: 22),
+                Image.asset('assets/app_icon.png', width: 32, height: 32),
+                const SizedBox(height: 34),
+                railButton(
+                  Icons.article_outlined,
+                  'Daily report',
+                  () => setState(() => projectView = false),
+                  selected: !projectView,
+                ),
+                railButton(
+                  Icons.folder_open_outlined,
+                  'Projects',
+                  () => setState(() => projectView = true),
+                  selected: projectView,
+                ),
+                railButton(Icons.history_outlined, 'Saved reports', history),
+                const Spacer(),
+                railButton(Icons.settings_outlined, 'Settings', settings),
+                const SizedBox(height: 18),
+              ],
+            ),
+          ),
+          Expanded(
+            child: Column(
+              children: [
+                Container(
+                  height: 72,
+                  padding: const EdgeInsets.symmetric(horizontal: 30),
+                  decoration: const BoxDecoration(
+                    border: Border(bottom: BorderSide(color: line)),
+                  ),
+                  child: Row(
+                    children: [
+                      TextButton(
+                        onPressed: () => setState(() => projectView = false),
+                        child: Text(
+                          'Overview',
+                          style: TextStyle(
+                            fontWeight: !projectView
+                                ? FontWeight.w600
+                                : FontWeight.w400,
+                            color: !projectView ? ink : muted,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      TextButton(
+                        onPressed: () => setState(() => projectView = true),
+                        child: Text(
+                          'Projects',
+                          style: TextStyle(color: projectView ? ink : muted),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      TextButton(
+                        onPressed: history,
+                        child: const Text(
+                          'History',
+                          style: TextStyle(color: muted),
+                        ),
+                      ),
+                      const Spacer(),
+                      const Icon(Icons.lock_outline, size: 13, color: muted),
+                      const SizedBox(width: 6),
+                      const Text(
+                        'Local workspace',
+                        style: TextStyle(fontSize: 11, color: muted),
+                      ),
+                    ],
+                  ),
+                ),
+                Expanded(
+                  child: LayoutBuilder(
+                    builder: (context, constraints) => SingleChildScrollView(
+                      padding: EdgeInsets.all(
+                        constraints.maxWidth < 950 ? 24 : 38,
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      projectView ? 'Projects' : 'Daily report',
+                                      style: Theme.of(context)
+                                          .textTheme
+                                          .headlineMedium,
+                                    ),
+                                    const SizedBox(height: 5),
+                                    Text(
+                                      projectView
+                                          ? 'Your connected repositories, in one place.'
+                                          : '$day  /  Make room for a better end to your day.',
+                                      style: const TextStyle(
+                                        color: muted,
+                                        fontSize: 12,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              OutlinedButton.icon(
+                                onPressed: showReport,
+                                icon: const Icon(Icons.north_east, size: 15),
+                                label: const Text('I’m leaving now'),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 28),
+                          const Divider(),
+                          const SizedBox(height: 28),
+                          if (error != null)
+                            Container(
+                              margin: const EdgeInsets.only(bottom: 20),
+                              padding: const EdgeInsets.all(14),
+                              decoration: BoxDecoration(
+                                color: const Color(0xfffff6f4),
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: Row(
+                                children: [
+                                  Expanded(
+                                    child: SelectableText(
+                                      error!,
+                                      style: const TextStyle(fontSize: 12),
+                                    ),
+                                  ),
+                                  IconButton(
+                                    onPressed: () =>
+                                        setState(() => error = null),
+                                    icon: const Icon(Icons.close, size: 16),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          if (projectView)
+                            ConstrainedBox(
+                              constraints: const BoxConstraints(maxWidth: 620),
+                              child: projectsPanel(),
+                            )
+                          else if (constraints.maxWidth >= 1000)
+                            Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Expanded(child: reportPanel()),
+                                const SizedBox(width: 36),
+                                SizedBox(width: 300, child: projectsPanel()),
+                              ],
+                            )
+                          else
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                projectsPanel(),
+                                const SizedBox(height: 32),
+                                reportPanel(),
+                              ],
+                            ),
+                          const SizedBox(height: 30),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
         ],
       ),
     ),
   );
+
   void history() {
     final keys = prefs.getKeys().where((k) => k.endsWith('.today')).toList()
       ..sort((a, b) => b.compareTo(a));
