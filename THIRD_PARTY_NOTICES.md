@@ -1,7 +1,7 @@
 # Application artwork
 
-The current application icon was supplied by the user as sticky-notes.png and is stored in assets/app_icon.png. Original creator and license details were not supplied.
+The current DailyReport logo is an AI-generated DR and checkmark monogram created for this project. The original image and generation prompt are saved as assets/dailyreport-logo-v2.png and assets/dailyreport-logo-v2.prompt.txt.
 
-Desktop app and tray assets are resized versions of that image. The macOS menu-bar icon preserves its colors. Run tools/update_icons.ps1 on Windows to regenerate platform assets.
+The app, website, desktop icons, and tray assets use this artwork. Run tools/update_icons.ps1 on Windows to regenerate desktop assets from assets/app_icon.png with a transparent background.
 
-The previous Flaticon Notes icon is no longer included in the application.
+The previous user-supplied sticky-notes and Flaticon Notes icons are no longer used.
