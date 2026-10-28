@@ -16,6 +16,7 @@ import 'report_clipboard.dart';
 import 'app_theme.dart';
 import 'schedule.dart';
 import 'settings_screen.dart';
+import 'profile_screen.dart';
 import 'reminder_dialog.dart';
 import 'gmail/gmail_service.dart';
 import 'gmail/gmail_delivery.dart';
@@ -42,8 +43,27 @@ class ReportApp extends StatelessWidget {
     debugShowCheckedModeBanner: false,
     title: 'Daily Report',
     theme: reportTheme(),
-    home: ReportHome(prefs: prefs),
+    home: ProfileGate(prefs: prefs),
   );
+}
+
+class ProfileGate extends StatefulWidget {
+  const ProfileGate({super.key, required this.prefs});
+  final SharedPreferences prefs;
+  @override
+  State<ProfileGate> createState() => _ProfileGateState();
+}
+
+class _ProfileGateState extends State<ProfileGate> {
+  @override
+  Widget build(BuildContext context) =>
+      widget.prefs.getBool('profile.complete') == true
+      ? ReportHome(prefs: widget.prefs)
+      : ProfileScreen(
+          prefs: widget.prefs,
+          welcome: true,
+          onComplete: () => setState(() {}),
+        );
 }
 
 class ReportHome extends StatefulWidget {
@@ -361,6 +381,7 @@ class _Home extends State<ReportHome> with WindowListener, TrayListener {
           startup: startup,
           onStartup: toggleStartup,
           onGmail: gmailSettings,
+          onProfile: profileSettings,
           onTest: () =>
               notify('Take a moment to update your work, plans, and blockers.'),
           onSave: (value) async {
@@ -371,6 +392,14 @@ class _Home extends State<ReportHome> with WindowListener, TrayListener {
       ),
     );
     await tick();
+  }
+
+  Future<void> profileSettings() async {
+    await Navigator.push<void>(
+      context,
+      MaterialPageRoute(builder: (_) => ProfileScreen(prefs: prefs)),
+    );
+    if (mounted) setState(() {});
   }
 
   @override
@@ -874,6 +903,16 @@ class _Home extends State<ReportHome> with WindowListener, TrayListener {
                       const Text(
                         'Local workspace',
                         style: TextStyle(fontSize: 11, color: muted),
+                      ),
+                      const SizedBox(width: 18),
+                      Tooltip(
+                        message:
+                            prefs.getString('profile.name') ?? 'Your profile',
+                        child: InkWell(
+                          onTap: profileSettings,
+                          borderRadius: BorderRadius.circular(24),
+                          child: ProfileAvatar(prefs: prefs, radius: 18),
+                        ),
                       ),
                     ],
                   ),

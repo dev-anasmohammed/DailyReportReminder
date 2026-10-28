@@ -11,7 +11,9 @@ class SettingsScreen extends StatefulWidget {
     required this.onTest,
     required this.onSave,
     this.onGmail,
+    this.onProfile,
   });
+  final Future<void> Function()? onProfile;
   final Future<void> Function()? onGmail;
   final DailySchedule schedule;
   final bool startup;
@@ -77,6 +79,21 @@ class _SettingsScreenState extends State<SettingsScreen> {
         child: ListView(
           padding: const EdgeInsets.all(28),
           children: [
+            if (widget.onProfile != null) ...[
+              ListTile(
+                contentPadding: EdgeInsets.zero,
+                leading: const Icon(Icons.person_outline),
+                title: const Text('Your profile'),
+                subtitle: const Text(
+                  'Change your name, replace your photo, or remove it.',
+                ),
+                trailing: OutlinedButton(
+                  onPressed: widget.onProfile,
+                  child: const Text('Edit profile'),
+                ),
+              ),
+              const Divider(height: 40),
+            ],
             if (widget.onGmail != null) ...[
               ListTile(
                 contentPadding: EdgeInsets.zero,

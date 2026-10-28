@@ -14,6 +14,8 @@ void main() {
     addTearDown(tester.view.resetDevicePixelRatio);
     final day = dateKey(DateTime.now());
     SharedPreferences.setMockInitialValues({
+      'profile.complete': true,
+      'profile.name': 'Test user',
       '$day.today': '**App/**\n- Saved work',
       '$day.tomorrow': '- Existing plan',
       '$day.blockers': '- Existing blocker',
