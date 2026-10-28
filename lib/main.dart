@@ -96,6 +96,7 @@ class _Home extends State<ReportHome> with WindowListener, TrayListener {
   final reportKey = GlobalKey();
   final gmail = GmailService();
   bool mailBusy = false;
+  bool sendValidation = false;
   SharedPreferences get prefs => widget.prefs;
 
   @override
@@ -454,13 +455,13 @@ class _Home extends State<ReportHome> with WindowListener, TrayListener {
 
   Future<void> sendReport() async {
     if (mailBusy) return;
+    setState(() => sendValidation = true);
     setState(() => mailBusy = true);
     final reportDay = DateTime.parse(day);
     final work = today.text, plans = tomorrow.text, issues = blockers.text;
     try {
-      if (work.trim().isEmpty) {
-        throw StateError('Add today’s work before sending your report.');
-      }
+      final validation = reportSendValidation(work, plans);
+      if (validation != null) throw StateError(validation);
       await gmail.load();
       if (!mounted) return;
       final threadId = prefs.getString('gmail.thread.id');
@@ -579,7 +580,21 @@ class _Home extends State<ReportHome> with WindowListener, TrayListener {
           minLines: lines,
           maxLines: null,
           style: const TextStyle(fontSize: 13, height: 1.7),
-          decoration: InputDecoration(hintText: hint),
+          onChanged: (_) {
+            if (sendValidation) setState(() {});
+          },
+          decoration: InputDecoration(
+            hintText: hint,
+            helperText: controller == today || controller == tomorrow
+                ? 'Required to send'
+                : null,
+            errorText:
+                sendValidation &&
+                    (controller == today || controller == tomorrow) &&
+                    controller.text.trim().isEmpty
+                ? 'This field is required to send your report.'
+                : null,
+          ),
         ),
       ],
     ),
@@ -832,7 +847,7 @@ class _Home extends State<ReportHome> with WindowListener, TrayListener {
         '**Project Z:**\n- I’ll finish…',
         3,
       ),
-      field(blockers, '3. Blockers and issues', '- I need…\n- I faced…', 2),
+      field(blockers, '3. Blockers and issues', 'None', 2),
       const SizedBox(height: 20),
       const Divider(),
       CheckboxListTile(

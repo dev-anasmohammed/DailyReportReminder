@@ -11,7 +11,7 @@ String reportHtml(String today, String tomorrow, String blockers) {
   final sections = [
     ('What I have worked on today:', today),
     ('What I will work on tomorrow:', tomorrow),
-    ('I have the following blockers and issues:', blockers),
+    ('I have the following blockers and issues:', blockersOrNone(blockers)),
   ];
   return '<div style="font-family:Arial,sans-serif;font-size:14px;line-height:1.5;color:#202124">${[for (var i = 0; i < sections.length; i++) '<p><strong>${i + 1}. ${sections[i].$1}</strong></p>${_htmlBody(sections[i].$2)}'].join('<br>')}</div>';
 }
@@ -43,7 +43,7 @@ String _plainBody(String source) {
 String reportPlainText(String today, String tomorrow, String blockers) =>
     '1. What I have worked on today:\n\n${_plainBody(today)}\n\n'
     '2. What I will work on tomorrow:\n\n${_plainBody(tomorrow)}\n\n'
-    '3. I have the following blockers and issues:\n\n${_plainBody(blockers)}\n';
+    '3. I have the following blockers and issues:\n\n${_plainBody(blockersOrNone(blockers))}\n';
 
 Future<void> copyFormattedReport(
   String today,

@@ -5,6 +5,52 @@ import 'package:daily_report_reminder/main.dart';
 import 'package:daily_report_reminder/report.dart';
 
 void main() {
+  testWidgets(
+    'sending highlights missing required report sections before Gmail setup',
+    (tester) async {
+      tester.view.physicalSize = const Size(1400, 1800);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+      SharedPreferences.setMockInitialValues({
+        'profile.complete': true,
+        'profile.name': 'Test',
+      });
+      final prefs = await SharedPreferences.getInstance();
+      await tester.pumpWidget(ReportApp(prefs: prefs));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Preview & send'));
+      await tester.pumpAndSettle();
+      expect(
+        find.text('This field is required to send your report.'),
+        findsNWidgets(2),
+      );
+      expect(find.text('Gmail delivery'), findsNothing);
+      await tester.enterText(
+        find.byKey(const ValueKey('1. What I have worked on today')),
+        'Finished work',
+      );
+      await tester.pumpAndSettle();
+      expect(
+        find.text('This field is required to send your report.'),
+        findsOneWidget,
+      );
+      await tester.enterText(
+        find.byKey(const ValueKey('2. What I will work on tomorrow')),
+        'Finish tests',
+      );
+      await tester.pumpAndSettle();
+      expect(
+        find.text('This field is required to send your report.'),
+        findsNothing,
+      );
+      expect(
+        prefs.getString('${dateKey(DateTime.now())}.blockers') ?? '',
+        isEmpty,
+      );
+      await tester.pumpWidget(const SizedBox());
+    },
+  );
   testWidgets('restores today draft and saves edits without touching history', (
     tester,
   ) async {

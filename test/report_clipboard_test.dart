@@ -5,6 +5,21 @@ import 'package:daily_report_reminder/report_clipboard.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
+  test('blank blockers become None in every report format', () {
+    expect(reportHtml('Work', 'Plan', ' \n '), contains('>None</p>'));
+    expect(reportPlainText('Work', 'Plan', ''), endsWith('issues:\n\nNone\n'));
+    expect(formatReport('Work', 'Plan', ''), endsWith('issues:**\n\nNone\n'));
+    expect(reportPlainText('Work', 'Plan', 'Need API'), contains('Need API'));
+  });
+  test(
+    'both work sections are required for sending, blockers are optional',
+    () {
+      expect(reportSendValidation('', ''), isNotNull);
+      expect(reportSendValidation(' \n ', 'Plan'), contains('today'));
+      expect(reportSendValidation('Work', ' \n '), contains('tomorrow'));
+      expect(reportSendValidation('Work', 'Plan'), isNull);
+    },
+  );
   test('numbering restarts per project and keeps zero padding through 10', () {
     final body = formatProjectCommits(
       'App',

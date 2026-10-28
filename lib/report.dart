@@ -4,8 +4,24 @@ String dateKey(DateTime d) =>
     '${d.year}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
 String clock(DateTime d) =>
     '${d.hour.toString().padLeft(2, '0')}:${d.minute.toString().padLeft(2, '0')}';
+String blockersOrNone(String blockers) =>
+    blockers.trim().isEmpty ? 'None' : blockers;
+
+String? reportSendValidation(String today, String tomorrow) {
+  if (today.trim().isEmpty && tomorrow.trim().isEmpty) {
+    return 'Add today’s work and tomorrow’s plan before sending your report.';
+  }
+  if (today.trim().isEmpty) {
+    return 'Add today’s work before sending your report.';
+  }
+  if (tomorrow.trim().isEmpty) {
+    return 'Add tomorrow’s plan before sending your report.';
+  }
+  return null;
+}
+
 String formatReport(String today, String tomorrow, String blockers) =>
-    '1. **What I have worked on today:**\n\n${today.trim()}\n\n2. **What I will work on tomorrow:**\n\n${tomorrow.trim()}\n\n3. **I have the following blockers and issues:**\n\n${blockers.trim()}\n';
+    '1. **What I have worked on today:**\n\n${today.trim()}\n\n2. **What I will work on tomorrow:**\n\n${tomorrow.trim()}\n\n3. **I have the following blockers and issues:**\n\n${blockersOrNone(blockers).trim()}\n';
 Future<String> git(String path, List<String> args) async {
   try {
     final r = await Process.run('git', [
