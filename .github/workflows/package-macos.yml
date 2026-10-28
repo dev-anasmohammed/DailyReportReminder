@@ -1,0 +1,33 @@
+name: Package existing macOS build
+on:
+  workflow_dispatch:
+    inputs:
+      build_run_id:
+        description: Successful Desktop builds run containing DailyReport-macOS
+        required: true
+        type: string
+permissions:
+  contents: read
+  actions: read
+jobs:
+  package:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: DailyReport-macOS
+          run-id: ${{ inputs.build_run_id }}
+          github-token: ${{ github.token }}
+          path: downloaded
+      - name: Restore release app
+        run: |
+          mkdir -p build/macos/Build/Products/Release
+          ditto -x -k downloaded/DailyReport-macOS.zip build/macos/Build/Products/Release
+      - name: Build and verify disk image
+        run: bash tools/build_macos_installer.sh
+      - uses: actions/upload-artifact@v4
+        with:
+          name: DailyReport-macOS-Installer
+          path: DailyReportReminder-Setup-macOS.dmg
+          if-no-files-found: error

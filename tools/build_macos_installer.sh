@@ -25,5 +25,17 @@ EOF
 lipo -archs "$app/Contents/MacOS/Daily Report"
 codesign --verify --deep --strict "$app"
 hdiutil create -volname DailyReport -srcfolder "$staging" -ov -format UDZO "$output"
-hdiutil verify "$output"
+# The disk-images service may briefly keep the new image busy after creation.
+verified=false
+for delay in 2 4 8 16 32; do
+  sleep "$delay"
+  if hdiutil verify "$output"; then
+    verified=true
+    break
+  fi
+done
+if [[ "$verified" != true ]]; then
+  echo 'Disk image verification failed after retries.' >&2
+  exit 1
+fi
 echo "Created: $output"
