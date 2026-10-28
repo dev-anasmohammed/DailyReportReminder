@@ -8,13 +8,13 @@ import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:file_selector/file_selector.dart';
 import 'package:launch_at_startup/launch_at_startup.dart';
-import 'package:local_notifier/local_notifier.dart';
 import 'package:tray_manager/legacy.dart';
 import 'package:window_manager/window_manager.dart';
 
 import 'report.dart';
 import 'schedule.dart';
 import 'settings_screen.dart';
+import 'reminder_dialog.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -71,7 +71,7 @@ class _Home extends State<ReportHome> with WindowListener, TrayListener {
       loading = false;
   String? error;
   Timer? timer;
-  final notifications = <LocalNotification>[];
+  bool reminderVisible = false;
   final reportKey = GlobalKey();
   SharedPreferences get prefs => widget.prefs;
 
@@ -122,10 +122,6 @@ class _Home extends State<ReportHome> with WindowListener, TrayListener {
 
   Future<void> desktop() async {
     try {
-      await localNotifier.setup(
-        appName: 'Daily Report',
-        shortcutPolicy: ShortcutPolicy.requireCreate,
-      );
       startup = await launchAtStartup.isEnabled();
       await trayManager.setIcon(
         Platform.isWindows ? 'assets/tray.ico' : 'assets/tray.png',
@@ -170,6 +166,10 @@ class _Home extends State<ReportHome> with WindowListener, TrayListener {
 
   @override
   void onWindowClose() {
+    if (reminderVisible) {
+      unawaited(open());
+      return;
+    }
     if (trayReady) {
       unawaited(windowManager.hide());
     }
@@ -189,29 +189,35 @@ class _Home extends State<ReportHome> with WindowListener, TrayListener {
   }
 
   Future<void> notify(String body) async {
-    final n = LocalNotification(
-      title: 'Your daily report',
-      body: body,
-      actions: [
-        LocalNotificationAction(text: 'Open report'),
-        LocalNotificationAction(text: 'Snooze 10 min'),
-      ],
-    );
-    n.onClick = () => unawaited(open());
-    n.onClickAction = (index) {
-      if (index == 0) {
-        unawaited(open());
-      } else {
-        unawaited(
-          prefs.setString(
-            '$day.snooze',
-            DateTime.now().add(const Duration(minutes: 10)).toIso8601String(),
-          ),
-        );
-      }
-    };
-    notifications.add(n);
-    await n.show();
+    if (reminderVisible || !mounted) return;
+    reminderVisible = true;
+    bool? wasOnTop;
+    ReminderAction? action;
+    try {
+      wasOnTop = await windowManager.isAlwaysOnTop();
+      if (await windowManager.isMinimized()) await windowManager.restore();
+      await windowManager.center();
+      await windowManager.setAlwaysOnTop(true);
+      await open();
+      if (!mounted) return;
+      action = await showDialog<ReminderAction>(
+        context: context,
+        barrierDismissible: false,
+        builder: (_) => ReminderDialog(message: body),
+      );
+    } finally {
+      reminderVisible = false;
+      if (wasOnTop != null) await windowManager.setAlwaysOnTop(wasOnTop);
+    }
+    if (action == ReminderAction.snooze) {
+      await prefs.setString(
+        '$day.snooze',
+        DateTime.now().add(const Duration(minutes: 10)).toIso8601String(),
+      );
+    } else if (action == ReminderAction.openReport && mounted) {
+      Navigator.of(context).popUntil((route) => route.isFirst);
+      await showReport();
+    }
   }
 
   Future<void> tick() async {
@@ -243,7 +249,8 @@ class _Home extends State<ReportHome> with WindowListener, TrayListener {
         await notify(
           'Update your report before you leave. Your workday ends at ${clock(schedule.at(now, schedule.end))}.',
         );
-        if (snooze != null) {
+        if (snooze != null &&
+            prefs.getString('$day.snooze') == snooze.toIso8601String()) {
           await prefs.remove('$day.snooze');
         }
         for (final i in due) {
@@ -345,7 +352,7 @@ class _Home extends State<ReportHome> with WindowListener, TrayListener {
           startup: startup,
           onStartup: toggleStartup,
           onTest: () =>
-              notify('Test reminder — your report is one click away.'),
+              notify('Take a moment to update your work, plans, and blockers.'),
           onSave: (value) async {
             await value.save(prefs);
             if (mounted) setState(() => schedule = value);

@@ -44,11 +44,10 @@ GitHub Actions checks both targets and uploads desktop build artifacts. Windows 
 5. Enable login startup after placing the built application in a permanent location. On macOS, use Applications and approve the login item in System Settings if prompted.
 6. Use “I'm leaving now” in the tray to open your saved draft when leaving early.
 
-Notification delivery depends on OS permissions and Focus/Do Not Disturb settings. Use Test notification after installation. Notification snooze action availability varies by OS. Reminders require the app to be running and the computer awake. Closing the window keeps it running; quitting stops reminders. A missed deadline is checked every 20 seconds while running. The app cannot detect unexpected departures or notify while powered off.
+Reminders open the app in the center of the screen with a dialog above other windows. Choose Open report, Snooze 10 minutes, or Dismiss. Use Test reminder in Settings to preview it. Reminders require the app to be running and the computer awake. Closing the window keeps it running; quitting stops reminders. A missed deadline is checked every 20 seconds while running. The app cannot detect unexpected departures or notify while powered off.
 
 Drafts and history use local SharedPreferences storage (not encrypted, no cross-device sync). Do not store secrets in report text. macOS App Sandbox is disabled for this developer-distributed app so Git subprocesses can access your chosen repositories. Mac App Store distribution would require a different repository-access design.
 
 ## Current verification limits
 
 macOS runtime behavior and Apple signing must be verified on a Mac. CI provides a separate build for each platform. No automatic report sending is implemented.
-

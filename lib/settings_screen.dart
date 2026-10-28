@@ -176,8 +176,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     if (mounted) setState(() => error = e.toString());
                   }
                 },
-                icon: const Icon(Icons.notifications_active_outlined),
-                label: const Text('Test notification'),
+                icon: const Icon(Icons.alarm),
+                label: const Text('Test reminder'),
               ),
             ),
             const Text(
