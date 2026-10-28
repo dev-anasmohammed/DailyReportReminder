@@ -92,7 +92,11 @@ class _Home extends State<ReportHome> with WindowListener, TrayListener {
   void loadDay() {
     loading = true;
     day = dateKey(DateTime.now());
-    today.text = prefs.getString('$day.today') ?? '';
+    final savedWork = prefs.getString('$day.today') ?? '';
+    today.text = removeEmptyProjectSections(savedWork);
+    if (today.text != savedWork) {
+      unawaited(prefs.setString('$day.today', today.text));
+    }
     tomorrow.text = prefs.getString('$day.tomorrow') ?? '';
     blockers.text = prefs.getString('$day.blockers') ?? '';
     completed = prefs.getBool('$day.completed') ?? false;

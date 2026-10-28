@@ -5,6 +5,20 @@ import 'package:daily_report_reminder/report_clipboard.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
+  test('old empty placeholders are removed without touching real work', () {
+    const work =
+        '**App/**\n- Fixed login\n\n**Empty/**\n- No commits today.\n\n**Other/**\n- Real work';
+    expect(
+      removeEmptyProjectSections(work),
+      '**App/**\n- Fixed login\n\n**Other/**\n- Real work',
+    );
+    expect(
+      removeEmptyProjectSections(
+        '**App/**\n- No commits today.\n- Manual note',
+      ),
+      '**App/**\n- No commits today.\n- Manual note',
+    );
+  });
   test('empty projects are omitted and nonempty projects retain newlines', () {
     expect(formatProjectCommits('Empty', []), isNull);
     expect(

@@ -67,3 +67,15 @@ String? formatProjectCommits(String project, List<String> commits) =>
     commits.isEmpty
     ? null
     : '**$project/**\n${commits.map((c) => '- $c').join('\n')}';
+
+String removeEmptyProjectSections(String source) {
+  final blocks = source.split(RegExp(r'\r?\n[ \t]*\r?\n'));
+  final kept = blocks.where((block) {
+    final lines = block.trim().split('\n').map((line) => line.trim()).toList();
+    return !(lines.length == 2 &&
+        lines.first.startsWith('**') &&
+        lines.first.endsWith('/**') &&
+        lines.last == '- No commits today.');
+  }).toList();
+  return kept.length == blocks.length ? source : kept.join('\n\n').trim();
+}
