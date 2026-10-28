@@ -74,6 +74,7 @@ class ReportHome extends StatefulWidget {
 }
 
 class _Home extends State<ReportHome> with WindowListener, TrayListener {
+  static const showHistory = false;
   final today = TextEditingController(),
       tomorrow = TextEditingController(),
       blockers = TextEditingController(),
@@ -851,7 +852,8 @@ class _Home extends State<ReportHome> with WindowListener, TrayListener {
                   () => setState(() => projectView = true),
                   selected: projectView,
                 ),
-                railButton(Icons.history_outlined, 'Saved reports', history),
+                if (showHistory)
+                  railButton(Icons.history_outlined, 'Saved reports', history),
                 const Spacer(),
                 railButton(Icons.settings_outlined, 'Settings', settings),
                 const SizedBox(height: 18),
@@ -889,14 +891,16 @@ class _Home extends State<ReportHome> with WindowListener, TrayListener {
                           style: TextStyle(color: projectView ? ink : muted),
                         ),
                       ),
-                      const SizedBox(width: 12),
-                      TextButton(
-                        onPressed: history,
-                        child: const Text(
-                          'History',
-                          style: TextStyle(color: muted),
+                      if (showHistory) ...[
+                        const SizedBox(width: 12),
+                        TextButton(
+                          onPressed: history,
+                          child: const Text(
+                            'History',
+                            style: TextStyle(color: muted),
+                          ),
                         ),
-                      ),
+                      ],
                       const Spacer(),
                       const Icon(Icons.lock_outline, size: 13, color: muted),
                       const SizedBox(width: 6),
