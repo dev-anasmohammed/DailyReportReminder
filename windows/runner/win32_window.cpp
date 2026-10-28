@@ -16,7 +16,7 @@ namespace {
 #define DWMWA_USE_IMMERSIVE_DARK_MODE 20
 #endif
 
-constexpr const wchar_t kWindowClassName[] = L"FLUTTER_RUNNER_WIN32_WINDOW";
+constexpr const wchar_t kWindowClassName[] = L"DAILY_REPORT_REMINDER_WIN32_WINDOW";
 
 /// Registry key for app theme preference.
 ///
@@ -143,6 +143,20 @@ bool Win32Window::Create(const std::wstring& title,
   if (!window) {
     return false;
   }
+
+  // Explicit per-window icons keep the taskbar and title bar in sync with
+  // the executable resource instead of relying on cached class icons.
+  HINSTANCE module = GetModuleHandle(nullptr);
+  HICON large_icon = static_cast<HICON>(LoadImage(
+      module, MAKEINTRESOURCE(IDI_APP_ICON), IMAGE_ICON,
+      GetSystemMetrics(SM_CXICON), GetSystemMetrics(SM_CYICON), LR_SHARED));
+  HICON small_icon = static_cast<HICON>(LoadImage(
+      module, MAKEINTRESOURCE(IDI_APP_ICON), IMAGE_ICON,
+      GetSystemMetrics(SM_CXSMICON), GetSystemMetrics(SM_CYSMICON), LR_SHARED));
+  SendMessage(window, WM_SETICON, ICON_BIG,
+              reinterpret_cast<LPARAM>(large_icon));
+  SendMessage(window, WM_SETICON, ICON_SMALL,
+              reinterpret_cast<LPARAM>(small_icon));
 
   UpdateTheme(window);
 
@@ -286,3 +300,4 @@ void Win32Window::UpdateTheme(HWND const window) {
                           &enable_dark_mode, sizeof(enable_dark_mode));
   }
 }
+

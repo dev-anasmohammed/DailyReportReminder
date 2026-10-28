@@ -18,12 +18,12 @@ function Render-Png([int]$size, [bool]$whiteBackground) {
 }
 try {
   foreach($size in @(16,32,64,128,256,512,1024)) {
-    [System.IO.File]::WriteAllBytes((Join-Path $root "macos/Runner/Assets.xcassets/AppIcon.appiconset/app_icon_$size.png"),(Render-Png $size $true))
+    [System.IO.File]::WriteAllBytes((Join-Path $root "macos/Runner/Assets.xcassets/AppIcon.appiconset/app_icon_$size.png"),(Render-Png $size $false))
   }
   [System.IO.File]::WriteAllBytes((Join-Path $root 'assets/tray.png'),(Render-Png 32 $false))
   $sizes = @(16,24,32,48,64,128,256)
   $images = [System.Collections.Generic.List[byte[]]]::new()
-  foreach($size in $sizes){$images.Add((Render-Png $size $true))}
+  foreach($size in $sizes){$images.Add((Render-Png $size $false))}
   $stream = [System.IO.MemoryStream]::new()
   $writer = [System.IO.BinaryWriter]::new($stream)
   try {
@@ -42,4 +42,3 @@ try {
     [System.IO.File]::WriteAllBytes((Join-Path $root 'assets/tray.ico'),$stream.ToArray())
   } finally {$writer.Dispose();$stream.Dispose()}
 } finally {$source.Dispose()}
-

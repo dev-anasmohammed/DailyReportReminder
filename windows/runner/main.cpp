@@ -1,6 +1,7 @@
 #include <flutter/dart_project.h>
 #include <flutter/flutter_view_controller.h>
 #include <windows.h>
+#include <shobjidl.h>
 
 #include "flutter_window.h"
 #include "utils.h"
@@ -17,6 +18,9 @@ int APIENTRY wWinMain(_In_ HINSTANCE instance, _In_opt_ HINSTANCE prev,
   // plugins.
   ::CoInitializeEx(nullptr, COINIT_APARTMENTTHREADED);
 
+  // Give Windows a stable application identity for taskbar grouping.
+  ::SetCurrentProcessExplicitAppUserModelID(L"com.anas.dailyreport.reminder");
+
   flutter::DartProject project(L"data");
 
   std::vector<std::string> command_line_arguments =
@@ -27,7 +31,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE instance, _In_opt_ HINSTANCE prev,
   FlutterWindow window(project);
   Win32Window::Point origin(10, 10);
   Win32Window::Size size(1280, 720);
-  if (!window.Create(L"daily_report_reminder", origin, size)) {
+  if (!window.Create(L"Daily Report", origin, size)) {
     return EXIT_FAILURE;
   }
   window.SetQuitOnClose(true);
