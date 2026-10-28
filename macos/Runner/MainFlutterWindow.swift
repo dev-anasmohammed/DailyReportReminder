@@ -35,6 +35,20 @@ class MainFlutterWindow: NSWindow {
           result(FlutterError(code: "UNSUPPORTED", message: "Login startup requires macOS 13 or later.", details: nil))
         }
       }
+    FlutterMethodChannel(name: "daily_report/clipboard", binaryMessenger: controller.engine.binaryMessenger)
+      .setMethodCallHandler { call, result in
+        guard call.method == "write" else { result(FlutterMethodNotImplemented); return }
+        guard let args = call.arguments as? [String: String],
+              let html = args["html"], let text = args["text"] else {
+          result(FlutterError(code: "ARGUMENTS", message: "Missing report data", details: nil)); return
+        }
+        let item = NSPasteboardItem()
+        item.setString(html, forType: .html)
+        item.setString(text, forType: .string)
+        NSPasteboard.general.clearContents()
+        if NSPasteboard.general.writeObjects([item]) { result(nil) }
+        else { result(FlutterError(code: "CLIPBOARD", message: "Could not copy report", details: nil)) }
+      }
     RegisterGeneratedPlugins(registry: controller)
     super.awakeFromNib()
   }

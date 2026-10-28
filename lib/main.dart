@@ -4,7 +4,7 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
+
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:file_selector/file_selector.dart';
 import 'package:launch_at_startup/launch_at_startup.dart';
@@ -12,6 +12,7 @@ import 'package:tray_manager/legacy.dart';
 import 'package:window_manager/window_manager.dart';
 
 import 'report.dart';
+import 'report_clipboard.dart';
 import 'app_theme.dart';
 import 'schedule.dart';
 import 'settings_screen.dart';
@@ -317,9 +318,8 @@ class _Home extends State<ReportHome> with WindowListener, TrayListener {
           DateTime.now(),
           author.text.trim(),
         );
-        sections.add(
-          '**${name(path)}/**\n${commits.isEmpty ? '- No commits today.' : commits.map((c) => '- $c').join('\n')}',
-        );
+        final section = formatProjectCommits(name(path), commits);
+        if (section != null) sections.add(section);
       }
       today.text = sections.join('\n\n');
     } catch (e) {
@@ -376,15 +376,16 @@ class _Home extends State<ReportHome> with WindowListener, TrayListener {
   bool projectView = false;
 
   Future<void> copyReport() async {
-    await Clipboard.setData(
-      ClipboardData(
-        text: formatReport(today.text, tomorrow.text, blockers.text),
-      ),
-    );
+    try {
+      await copyFormattedReport(today.text, tomorrow.text, blockers.text);
+    } catch (e) {
+      fail('Could not copy report: $e');
+      return;
+    }
     if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Report copied as Markdown')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Formatted report copied')));
     }
   }
 

@@ -8,7 +8,8 @@ A local-first Flutter app for Windows and macOS. Configure your daily working ho
 - Dedicated Settings screen with working hours (default 9 AM–6 PM) and unlimited configurable reminders (default 2 PM, 5 PM, and 6 PM).
 - Persistent reminder deadlines, catch-up after sleep/restart on the same day, and ten-minute snooze.
 - Add local Git folders. Collect today's commits across local branches, filtered by exact author email and sorted oldest first. Uses author timestamps converted to local time. Does not fetch remote repositories or include uncommitted work.
-- Editable Markdown work, tomorrow, and blockers sections, clipboard export, local drafts and report history.
+- Editable Markdown work, tomorrow, and blockers sections, rich-text clipboard export with a plain-text fallback, local drafts and report history.
+- Projects with no commits today are omitted from generated reports.
 - Complete today's report to stop reminders. No cloud service or AI API required.
 
 ## Develop

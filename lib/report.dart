@@ -62,3 +62,8 @@ Future<List<String>> readCommits(
   });
   return records.map((r) => r.subject).toList();
 }
+
+String? formatProjectCommits(String project, List<String> commits) =>
+    commits.isEmpty
+    ? null
+    : '**$project/**\n${commits.map((c) => '- $c').join('\n')}';
