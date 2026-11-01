@@ -1,6 +1,8 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/gestures.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:daily_report_reminder/app_theme.dart';
@@ -13,6 +15,78 @@ import 'package:daily_report_reminder/report_clipboard.dart';
 import 'gmail_test.dart' show MemoryVault, sampleThread;
 
 void main() {
+  testWidgets(
+    'preview supports mouse wheel and recipient clipboard shortcuts',
+    (tester) async {
+      String? clipboard;
+      tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+        SystemChannels.platform,
+        (call) async {
+          if (call.method == 'Clipboard.setData') {
+            clipboard = (call.arguments as Map)['text'] as String?;
+          }
+          if (call.method == 'Clipboard.getData') {
+            return <String, dynamic>{'text': clipboard};
+          }
+          return null;
+        },
+      );
+      addTearDown(
+        () => tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+          SystemChannels.platform,
+          null,
+        ),
+      );
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: reportTheme().copyWith(platform: TargetPlatform.windows),
+          home: GmailReplyScreen(
+            thread: sampleThread(),
+            account: 'me@example.com',
+            replyAll: false,
+            plain: 'Report',
+            html: List.generate(50, (i) => '<p>Report line $i</p>').join(),
+            onSend: (_) async {},
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      final field = find.byType(TextField).first;
+      await tester.tap(field);
+      await tester.sendKeyDownEvent(LogicalKeyboardKey.controlLeft);
+      await tester.sendKeyEvent(LogicalKeyboardKey.keyA);
+      await tester.sendKeyEvent(LogicalKeyboardKey.keyC);
+      await tester.sendKeyUpEvent(LogicalKeyboardKey.controlLeft);
+      await tester.pump();
+      final original = tester.widget<TextField>(field).controller!.text;
+      expect(clipboard, original);
+      clipboard = 'other@example.com';
+      await tester.sendKeyDownEvent(LogicalKeyboardKey.controlLeft);
+      await tester.sendKeyEvent(LogicalKeyboardKey.keyV);
+      await tester.sendKeyUpEvent(LogicalKeyboardKey.controlLeft);
+      await tester.pumpAndSettle();
+      expect(
+        tester.widget<TextField>(field).controller!.text,
+        'other@example.com',
+      );
+      final scroll = tester
+          .widget<SingleChildScrollView>(
+            find.byType(SingleChildScrollView).first,
+          )
+          .controller!;
+      final before = scroll.offset;
+      await tester.sendEventToBinding(
+        PointerScrollEvent(
+          kind: PointerDeviceKind.mouse,
+          position: tester.getCenter(find.byType(Scrollbar).first),
+          scrollDelta: const Offset(0, 300),
+        ),
+      );
+      await tester.pumpAndSettle();
+      expect(scroll.offset, greaterThan(before));
+      expect(find.byType(SelectionArea), findsOneWidget);
+    },
+  );
   testWidgets(
     'setup clearly identifies the missing OAuth client and gates connection',
     (tester) async {
