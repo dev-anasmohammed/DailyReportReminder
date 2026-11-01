@@ -243,7 +243,7 @@ class GmailService {
   final GmailVault vault;
   final Future<bool> Function(Uri) openBrowser;
   static const scopes = [
-    'https://www.googleapis.com/auth/gmail.metadata',
+    'https://www.googleapis.com/auth/gmail.readonly',
     'https://www.googleapis.com/auth/gmail.send',
   ];
   Map<String, dynamic> _data = {};
@@ -290,7 +290,7 @@ class GmailService {
       }
       if (response.statusCode == 403) {
         throw StateError(
-          'Gmail access was denied. Enable Gmail API and allow the requested permissions, or check your organization policy.',
+          'Gmail access was denied. For conversation search, add gmail.readonly in Google Auth Platform, then disconnect and connect Gmail again. Also check Gmail API and your organization policy.',
         );
       }
       if (response.statusCode == 404) {
@@ -508,13 +508,14 @@ class GmailService {
       ],
     }),
   );
-  Future<ThreadPage> recentThreads({String? pageToken}) async {
+  Future<ThreadPage> recentThreads({String? pageToken, String? query}) async {
     final data = await get('threads', {
       'maxResults': '15',
       'pageToken': ?pageToken,
+      if (query != null && query.trim().isNotEmpty) 'q': query.trim(),
     });
     final threads = <GmailThread>[];
-    // Keep requests bounded; each page can be filtered locally by subject/sender.
+    // Keep metadata requests bounded for both recent and search results.
     for (final entry in data['threads'] as List? ?? []) {
       try {
         threads.add(await thread(entry['id'] as String));

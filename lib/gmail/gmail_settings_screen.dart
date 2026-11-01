@@ -290,6 +290,8 @@ class GmailThreadPicker extends StatefulWidget {
 
 class _GmailThreadPickerState extends State<GmailThreadPicker> {
   final threads = <GmailThread>[];
+  final searchController = TextEditingController();
+  String query = '';
   String filter = '';
   String? nextPage, error;
   bool loading = false;
@@ -299,13 +301,32 @@ class _GmailThreadPickerState extends State<GmailThreadPicker> {
     load();
   }
 
+  @override
+  void dispose() {
+    searchController.dispose();
+    super.dispose();
+  }
+
+  Future<void> search() async {
+    if (loading) return;
+    setState(() {
+      query = searchController.text.trim();
+      threads.clear();
+      nextPage = null;
+    });
+    await load();
+  }
+
   Future<void> load() async {
     setState(() {
       loading = true;
       error = null;
     });
     try {
-      final page = await widget.gmail.recentThreads(pageToken: nextPage);
+      final page = await widget.gmail.recentThreads(
+        pageToken: nextPage,
+        query: query,
+      );
       if (mounted) {
         setState(() {
           threads.addAll(page.threads);
@@ -336,6 +357,26 @@ class _GmailThreadPickerState extends State<GmailThreadPicker> {
         child: Column(
           children: [
             TextField(
+              controller: searchController,
+              enabled: !loading,
+              decoration: InputDecoration(
+                labelText: 'Search Gmail conversations',
+                hintText: 'subject:"Daily Report" from:manager@example.com',
+                suffixIcon: IconButton(
+                  tooltip: 'Search Gmail',
+                  onPressed: loading ? null : search,
+                  icon: const Icon(Icons.search),
+                ),
+              ),
+              onSubmitted: (_) => search(),
+            ),
+            const SizedBox(height: 8),
+            const Text(
+              'Search any age of conversation. Use subject:, from:, before:2026/01/01 or after:2025/01/01. Clear the search and press Enter for recent conversations.',
+              style: TextStyle(fontSize: 12),
+            ),
+            const SizedBox(height: 8),
+            TextField(
               decoration: const InputDecoration(
                 labelText: 'Filter loaded conversations',
                 hintText: 'Subject or sender',
@@ -344,7 +385,7 @@ class _GmailThreadPickerState extends State<GmailThreadPicker> {
             ),
             const SizedBox(height: 8),
             const Text(
-              'Recent conversations, headers only. Load more to find older threads.',
+              'Select a conversation below. Load more to see additional results.',
               style: TextStyle(fontSize: 12),
             ),
             if (loading) const LinearProgressIndicator(),

@@ -124,13 +124,17 @@ void main() {
     expect(mime.getHeaderValue('Message-ID'), reply.messageId);
     expect(reply.threadId, 'thread-1');
   });
-  test('metadata browsing uses no body access or unsupported search and send targets thread', () async {
+  test('mailbox search passes query and pagination, fetches headers and sends to thread', () async {
     var sent = 0;
     final service = GmailService(
       vault: MemoryVault(credentials()),
       client: MockClient((request) async {
         if (request.url.path.endsWith('/threads')) {
-          expect(request.url.queryParameters.containsKey('q'), false);
+          expect(
+            request.url.queryParameters['q'],
+            'subject:"Daily Report" before:2026/01/01',
+          );
+          expect(request.url.queryParameters['pageToken'], 'older-matches');
           return http.Response(
             jsonEncode({
               'threads': [
@@ -166,7 +170,10 @@ void main() {
     );
     addTearDown(service.dispose);
     await service.load();
-    final page = await service.recentThreads();
+    final page = await service.recentThreads(
+      query: ' subject:"Daily Report" before:2026/01/01 ',
+      pageToken: 'older-matches',
+    );
     expect(page.nextPage, 'next');
     expect(page.threads.single.subject, 'Daily reports');
     expect(await service.send(sampleReply()), 'sent-id');

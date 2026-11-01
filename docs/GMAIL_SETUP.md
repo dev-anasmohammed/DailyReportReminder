@@ -9,11 +9,11 @@ Daily Report replies directly in a Gmail conversation on Windows and macOS. The 
 3. In Google Auth Platform, configure Branding with the application name and your support/developer email.
 4. For a personal Gmail account, select an External audience. During testing, add your Gmail address as a test user.
 5. Under Data Access, add only:
-   - `https://www.googleapis.com/auth/gmail.metadata`
+   - `https://www.googleapis.com/auth/gmail.readonly`
    - `https://www.googleapis.com/auth/gmail.send`
 6. Create an OAuth client with application type **Desktop app**, and download its JSON.
 7. In Daily Report → Settings → Configure Gmail, import that JSON and click Connect Gmail. Sign in in your system browser and allow both permissions.
-8. Choose your report conversation. The picker loads recent conversation headers, supports filtering the loaded subjects/senders, and offers Load more for older conversations. It does not download email bodies or use Gmail search, because the metadata scope does not allow search queries.
+8. Choose your report conversation. Use **Search Gmail conversations** to search any age of conversation, for example `subject:"Daily Report" from:manager@example.com before:2026/01/01`. Press Enter or click the search icon, then select the matching conversation. Load more retrieves additional matches. Clear the search and press Enter for recent conversations. The app fetches headers rather than bodies. If upgrading from metadata-only access, add `gmail.readonly` in Google Auth Platform, then disconnect and reconnect Gmail to approve search access.
 9. Enable Reply all by default if your reporting workflow requires everyone on the original conversation.
 
 The OAuth client must be Desktop app, not Web application. The app uses a random loopback port on 127.0.0.1, PKCE, a one-time random state, and a five-minute sign-in timeout. You can cancel sign-in in the app.
