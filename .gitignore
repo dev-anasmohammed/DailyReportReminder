@@ -55,3 +55,4 @@ oauth-client*.json
 # Packaged desktop downloads
 /DailyReportReminder-Setup-*.exe
 /DailyReportReminder-Setup-*.dmg
+.hotswan/

@@ -43,6 +43,7 @@ GitHub Actions checks both targets and uploads desktop build artifacts. Windows 
 3. Collect commits, edit the work section, and fill in tomorrow's plans and blockers. Refreshing commits asks before replacing work-section edits.
 4. Copy the report to your reporting tool and mark it completed.
 5. Enable login startup after placing the built application in a permanent location. On macOS, use Applications and approve the login item in System Settings if prompted.
+   On Windows, sign-in startup runs hidden in the system tray (possibly under the taskbar arrow). Click its tray icon to open the app. Normal shortcut launches open the window; closing it keeps reminders running in the tray.
 6. Use “I'm leaving now” in the tray to open your saved draft when leaving early.
 
 Reminders open the app in the center of the screen with a dialog above other windows. Choose Open report, Snooze 10 minutes, or Dismiss. Use Test reminder in Settings to preview it. Reminders require the app to be running and the computer awake. Closing the window keeps it running; quitting stops reminders. A missed deadline is checked every 20 seconds while running. The app cannot detect unexpected departures or notify while powered off.

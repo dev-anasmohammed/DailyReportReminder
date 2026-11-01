@@ -1,8 +1,10 @@
 #include "flutter_window.h"
 
 #include <optional>
+#include <algorithm>
 
 #include "flutter/generated_plugin_registrant.h"
+#include "utils.h"
 
 FlutterWindow::FlutterWindow(const flutter::DartProject& project)
     : project_(project) {}
@@ -28,9 +30,14 @@ bool FlutterWindow::OnCreate() {
   clipboard_channel_ = RegisterRichClipboard(flutter_controller_->engine()->messenger(), GetHandle());
   SetChildContent(flutter_controller_->view()->GetNativeWindow());
 
-  flutter_controller_->engine()->SetNextFrameCallback([&]() {
-    this->Show();
-  });
+  const auto arguments = GetCommandLineArguments();
+  const bool background = std::find(arguments.begin(), arguments.end(),
+                                    "--background") != arguments.end();
+  if (!background) {
+    flutter_controller_->engine()->SetNextFrameCallback([&]() {
+      this->Show();
+    });
+  }
 
   // Flutter can complete the first frame before the "show window" callback is
   // registered. The following call ensures a frame is pending to ensure the

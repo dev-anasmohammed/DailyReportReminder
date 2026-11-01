@@ -24,7 +24,7 @@ import 'gmail/gmail_delivery.dart';
 import 'gmail/gmail_settings_screen.dart';
 import 'gmail/gmail_reply_screen.dart';
 
-Future<void> main() async {
+Future<void> main(List<String> args) async {
   WidgetsFlutterBinding.ensureInitialized();
   await windowManager.ensureInitialized();
   await windowManager.setTitle('Daily Report');
@@ -35,7 +35,31 @@ Future<void> main() async {
         ? '"${Platform.resolvedExecutable}"'
         : Platform.resolvedExecutable,
   );
-  runApp(ReportApp(prefs: await SharedPreferences.getInstance()));
+  if (Platform.isWindows) {
+    // Preserve enabled startup registrations created by earlier versions.
+    bool migrateStartup = false;
+    try {
+      migrateStartup = await launchAtStartup.isEnabled();
+    } catch (_) {}
+    launchAtStartup.setup(
+      appName: 'Daily Report',
+      appPath: '"${Platform.resolvedExecutable}"',
+      args: const ['--background'],
+    );
+    if (migrateStartup) {
+      try {
+        await launchAtStartup.enable();
+      } catch (_) {}
+    }
+  }
+  final prefs = await SharedPreferences.getInstance();
+  runApp(ReportApp(prefs: prefs));
+  if (Platform.isWindows &&
+      args.contains('--background') &&
+      prefs.getBool('profile.complete') != true) {
+    await windowManager.show();
+    await windowManager.focus();
+  }
 }
 
 class ReportApp extends StatelessWidget {
@@ -206,6 +230,8 @@ class _Home extends State<ReportHome> with WindowListener, TrayListener {
       await tick();
     } catch (e) {
       fail('Desktop integration: $e');
+      // Keep the app accessible if its tray icon could not be initialized.
+      await open();
     }
   }
 

@@ -43,7 +43,7 @@ Name: "{group}\DailyReport"; Filename: "{app}\daily_report_reminder.exe"; AppUse
 Name: "{autodesktop}\DailyReport"; Filename: "{app}\daily_report_reminder.exe"; Tasks: desktopicon; AppUserModelID: "com.anas.dailyreport.reminder"
 
 [Registry]
-Root: HKCU; Subkey: "Software\Microsoft\Windows\CurrentVersion\Run"; ValueType: string; ValueName: "Daily Report"; ValueData: """{app}\daily_report_reminder.exe"""; Flags: uninsdeletevalue; Tasks: startup
+Root: HKCU; Subkey: "Software\Microsoft\Windows\CurrentVersion\Run"; ValueType: string; ValueName: "Daily Report"; ValueData: """{app}\daily_report_reminder.exe"" --background"; Flags: uninsdeletevalue; Tasks: startup
 Root: HKCU; Subkey: "Software\Microsoft\Windows\CurrentVersion\Explorer\StartupApproved\Run"; ValueType: binary; ValueName: "Daily Report"; ValueData: "02 00 00 00 00 00 00 00 00 00 00 00"; Flags: createvalueifdoesntexist uninsdeletevalue; Tasks: startup
 Root: HKCU; Subkey: "Software\Microsoft\Windows\CurrentVersion\Run"; ValueName: "Daily Report"; Flags: deletevalue; Tasks: not startup
 Root: HKCU; Subkey: "Software\Microsoft\Windows\CurrentVersion\Explorer\StartupApproved\Run"; ValueName: "Daily Report"; Flags: deletevalue; Tasks: not startup
